@@ -89,7 +89,7 @@ class RenrenAgent:
         postData = urlencode(loginData)
         req = urllib2.Request(self.loginUrl, postData)
         try:
-            response = self.opener.open(req)
+            response = self.opener.open(req, timeout=5)
         except urllib2.URLError, e:
             #print 'Login error: ' + e.reason
             log.error('Login error: ' + e.reason)
@@ -99,7 +99,7 @@ class RenrenAgent:
         # The first login page may not directly go to guide page.
         # So we need to do a request again.
         try:
-            response = self.opener.open(self.renrenUrl)
+            response = self.opener.open(self.renrenUrl, timeout=5)
         except urllib2.URLError, e:
             #print 'Open guide error: ' + e.reason
             log.error('Open guide error: ' + e.reason)
@@ -130,11 +130,11 @@ class RenrenAgent:
         """
         if not self.isLogin:
             return (None, ErrorCode.NO_LOGIN)
-        url = self.getProfileUrl(id)
+        url = RenrenAgent.getProfileUrl(id)
         try:
-            response = self.opener.open(url)
+            response = self.opener.open(url, timeout=5)
         except urllib2.URLError, e:
-            log.warning('Get profile url error: ' + e.reason +\
+            log.warning('Get profile url error: ' + str(e.reason) +\
                         '. Profile url: ' + url)
             return (None, ErrorCode.URL_ERROR)
 
@@ -291,7 +291,7 @@ class RenrenAgent:
         try:
             divList = summaryNode.find_all('div', class_='clearfix')
             for divTag in divList:
-                if divTag.dt and divTag.dt.string == '生　　日:':
+                if divTag.dt and divTag.dt.string == u'生　　日:':
                     birthdayString = []
                     for a in divTag.find_all('a'):
                         birthdayString.append(a.string)
@@ -303,7 +303,7 @@ class RenrenAgent:
         try:
             divList = summaryNode.find_all('div', class_='clearfix')
             for divTag in divList:
-                if divTag.dt and divTag.dt.string == '家　　乡:':
+                if divTag.dt and divTag.dt.string == u'家　　乡:':
                     hometownString = []
                     for a in divTag.find_all('a'):
                         hometownString.append(a.string)
@@ -379,8 +379,20 @@ class RenrenAgent:
               info.gender = 'male'
             elif genderText == u'女生':
               info.gender = 'female'
-        except:
-            pass
+        except Exception, e:
+            log.debug('Exception in gender 1: ' + str(e))
+            try:
+                # It's possible that there is no gender info in user-info
+                # So we find it's gender info from something link: '她/他xx'
+                detailUlTag = document.find('ul', class_='detail')
+                for liTag in detailUlTag.find('li'):
+                    tagText = liTag.string
+                    if re.compile(u'.*他.*').match(tagText):
+                        info.gender = 'male'
+                    elif re.compile(u'.*她.*').match(tagText):
+                        info.gender = 'female'
+            except Exception, e:
+                log.debug('Exception in gender 2: ' + str(e))
         # Hometown
         try:
             liTag = ulTag.find('li', class_='hometown')
@@ -415,6 +427,7 @@ class RenrenAgent:
             pass
 
         return info
-
-    def getProfileUrl(self, id):
-        return self.renrenUrl + str(id) + '/profile'
+    
+    @staticmethod
+    def getProfileUrl(id):
+        return RenrenAgent.renrenUrl + str(id) + '/profile'

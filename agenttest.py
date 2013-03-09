@@ -10,11 +10,14 @@ import sys
 import os
 
 
-def runTest(username, password, testInterval, totalCount, startList):
-    """Run a recursive test.
+def recursiveTestGenerator(
+    username, password, testInterval, totalCount, startList):
+    """A recursive test generator.
    
-    start from a list of user id, and get all the profile of these id and
+    Start from a list of user id, and get all the profile of these id and
     their friends and friend of the friends.
+    Every time it gets a user profile, it will yield the
+    (id, UserInfo, ErrorCode)
     
     Args:
         @username {string} the user name of the agent.
@@ -51,6 +54,8 @@ def runTest(username, password, testInterval, totalCount, startList):
             else:
                 log.warning('Error happen when getProfile, no refer id.')
             continue
+        # Yield result
+        yield (id, info, errorCode)
         # Result handle
         if len(visitList) < totalCount - count:
             newList = []
@@ -67,6 +72,43 @@ def runTest(username, password, testInterval, totalCount, startList):
             return
         time.sleep(testInterval)
 
+
+def runTest(username, password, testInterval, totalCount, startList):
+    """Run a recursive test."""
+    generator = recursiveTestGenerator(
+        username, password, testInterval, totalCount, startList)
+    list(generator)
+
+def recursiveProfileTest(
+    username, password, testInterval, totalCount, startList):
+    """Run a recursive get profile test."""
+    generator = recursiveTestGenerator(
+        username, password, testInterval, totalCount, startList)
+    while True:
+        try:
+            id, info, errorCode = generator.next()
+            if not errorCode:
+                log.info('Profile url: ' + RenrenAgent.getProfileUrl(id))
+                path = util.saveTestPage(info.html, id)
+                log.info('Profile local path: file://'+path)
+                printInfo(info)
+        except Exception, e:
+            log.error('Error happen or end: ' + str(e))
+            break
+
+def printInfo(info):
+    log.info('Parsed user info:\n' +\
+        'name: ' + str(info.name) + '\n'\
+        'gender: ' + str(info.gender) + '\n'\
+        'hometown: ' + str(info.hometown) + '\n'\
+        'residence: ' + str(info.residence) + '\n'\
+        'birthday: ' + str(info.birthday) + '\n'\
+        'visitedNum: ' + str(info.visitedNum) + '\n'\
+        'friendNum: ' + str(info.friendNum) + '\n'\
+        'vistorListNum: ' + str(len(info.recentVisitedList)) + '\n'\
+        'vistorList: ' + str(info.recentVisitedList) + '\n'\
+        'friendListNum: ' + str(len(info.friendList)) + '\n'\
+        'friendList: ' + str(info.friendList))
 
 def getProfileTest(agent, id, filePath=''):
     if filePath:
@@ -91,31 +133,23 @@ def getProfileTest(agent, id, filePath=''):
             return
         path = util.saveTestPage(info.html, id)
         log.info('Online Profile path: file://'+path)
-    log.info('Parsed user info:\n' +\
-        'name: ' + str(info.name) + '\n'\
-        'gender: ' + str(info.gender) + '\n'\
-        'hometown: ' + str(info.hometown) + '\n'\
-        'residence: ' + str(info.residence) + '\n'\
-        'birthday: ' + str(info.birthday) + '\n'\
-        'visitedNum: ' + str(info.visitedNum) + '\n'\
-        'friendNum: ' + str(info.friendNum) + '\n'\
-        'vistorListNum: ' + str(len(info.recentVisitedList)) + '\n'\
-        'vistorList: ' + str(info.recentVisitedList) + '\n'\
-        'friendListNum: ' + str(len(info.friendList)) + '\n'\
-        'friendList: ' + str(info.friendList))
-
+    printInfo(info)
 
 def main():
-    log.config(GC.LOG_FILE_DIR + 'agent_test', 'info', 'info')
+    #log.config(GC.LOG_FILE_DIR + 'agent_test', 'info', 'info')
+    log.config(GC.LOG_FILE_DIR + 'agent_test', 'debug', 'debug')
     startList = [
         '255617816',
         '45516',
         '200656024',
         '601630763']
-    runTest('zhanglini.ok@163.com', '12345678', 1, 200, startList)
+    #runTest('zhanglini.ok@163.com', '12345678', 1, 200, startList)
+    recursiveProfileTest('zhanglini.ok@163.com', '12345678', 1, 20, startList)
 
 
-#main()
+reload(sys)
+sys.setdefaultencoding( "utf-8" )
+main()
 
 
 def getTestAgent():
@@ -136,4 +170,4 @@ def mainProfileTest():
 
 reload(sys)
 sys.setdefaultencoding( "utf-8" )
-mainProfileTest()
+#mainProfileTest()
