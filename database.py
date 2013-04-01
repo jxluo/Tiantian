@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import renrenagent
 import MySQLdb as mdb
 import log
@@ -15,7 +18,7 @@ class Status:
 
 class Gender:
     """ gender enum."""
-    (MALE, FEMALE) = range(0,2)
+    (MALE, FEMALE) = (1, 2)
 
 class Profile:
     """ The profile info for a person. 
@@ -36,28 +39,35 @@ class Connection:
     """ The connection of a person.
     """
     def __init__(self):
-        recentVisitorList = []
-        homePageFriendList = []
+        self.recentVisitorList = []
+        self.homePageFriendList = []
 
 
 class DataBase:
     """ The class handle the mysql operation, provide a data interface for
         Crawer and Indexer.
     """
-    def init(self):
+    def init(self, host, username, password, database):
         """ Initialize the mysql connection.
+            
+            Args:
+                @host {string} the name of the host, e.g. 'localhost'.
+                @username {string} the user name of the database account.
+                @password {string} the password.
+                @database {string} the name of the database.
+
             Reuturns:
-                true if the action success.
-                false if the action failed.
+                True if the action success.
+                False if the action failed.
         """
         try:
-            self.mdbConnection = mdb.connect('localhost', 'jxluo', 
-                '1q2w3e', 'jxluodb');
+            self.mdbConnection = mdb.connect(host, username, 
+                password, database);
             self.cursor = self.mdbConnection.cursor()
-            sucess = true
+            sucess = True
         except mdb.Error, e:
             log.error("Can not establish connection to mysql: " + str(e))
-            sucess = false
+            sucess = False
         return sucess
 
     def close(self):
@@ -71,7 +81,7 @@ class DataBase:
         """
         command = "SELECT status FROM Persons WHERE id = %s;"
         self.cursor.execute(command, [id])
-        rows = cur.fetchall()
+        rows = self.cursor.fetchall()
         if len(rows):
             if len(rows) > 1:
                 log.warning("Mutiple result for id: " + id)
@@ -89,7 +99,7 @@ class DataBase:
             "home_page_friend_number " +\
             "FROM Persons WHERE id = %s;"
         self.cursor.execute(command, [id])
-        rows = cur.fetchall()
+        rows = self.cursor.fetchall()
         if len(rows):
             if len(rows) > 1:
                 log.warning("Mutiple result for id: " + id)
@@ -103,6 +113,15 @@ class DataBase:
             profile.friendNum,\
             profile.recentVisitorNum,\
             profile.homePageFriendNum = rows[0]
+            # Decode the string
+            if profile.name:
+                profile.name = profile.name.decode('utf-8')
+            if profile.hometown:
+                profile.hometown = profile.hometown.decode('utf-8')
+            if profile.residence:
+                profile.residence = profile.residence.decode('utf-8')
+            if profile.birthday:
+                profile.birthday = profile.birthday.decode('utf-8')
             return profile
         else:
             return None
@@ -128,30 +147,36 @@ class DataBase:
         """ Insert a person into database, provided user id and userInfo
             from crawer.
             Reuturns:
-                true if the action success.
-                false if the action failed.   
+                True if the action success.
+                False if the action failed.   
         """
         personsCommand = "INSERT INTO Persons (" +\
             "id, status, " +\
-            "name, gender, hometown" +\
-            "residence, birthday" +\
+            "name, gender, hometown, " +\
+            "residence, birthday, " +\
             "visitor_number, friend_number, " +\
             "recent_visitor_number, home_page_friend_number) " +\
-            "VALUES(%s, %d, " +\
-            "%s, %d, %s, " +\
-            "%s, %s" +\
-            "%d, %d" +\
-            "%d, %d);"
+            "VALUES(%s, %s, " +\
+            "%s, %s, %s, " +\
+            "%s, %s, " +\
+            "%s, %s, " +\
+            "%s, %s);"
         visitorsCommand = "INSERT INTO RecentVisitors (" +\
             "id, visitor) VALUES(%s, %s);"
         friendsCommand = "INSERT INTO HomePageFriends (" +\
             "id, friend) VALUES(%s, %s);"
         try:
-            connection, profile = convert(userInfo)
+            profile, connection = convert(userInfo)
             self.cursor.execute(personsCommand, (
                 id, Status.unexpanded,
-                profile.name, profile.gender, profile.hometown,
-                profile.residence, profile.birthday,
+                profile.name.encode('utf-8'),
+                profile.gender if profile.gender else None,
+                profile.hometown.encode('utf-8') \
+                    if profile.hometown else None,
+                profile.residence.encode('utf-8') \
+                    if profile.residence else None,
+                profile.birthday.encode('utf-8') \
+                    if profile.birthday else None,
                 profile.visitorNum, profile.friendNum,
                 profile.recentVisitorNum, profile.homePageFriendNum))
             for visitor in connection.recentVisitorList:
@@ -159,31 +184,31 @@ class DataBase:
             for friend in connection.homePageFriendList:
                 self.cursor.execute(friendsCommand, (id, friend))
             self.mdbConnection.commit()
-            sucess = true
+            sucess = True
         except Exception, e:
             log.warning("Add Record Failed! " + str(e))
             self.mdbConnection.rollback()
-            sucess = false
+            sucess = False
         return sucess
 
     def setStatus(self, id, newStatus):
         """ Set the status for id.
             Reuturns:
-                true if the action success.
-                false if the action failed.
+                True if the action success.
+                False if the action failed.
         """
         command =\
-            "UPDATE Persons" +\
-            "SET status = %d" +\
+            "UPDATE Persons " +\
+            "SET status = %s " +\
             "WHERE id = %s"
         try:
             self.cursor.execute(command, (newStatus, id))
             self.mdbConnection.commit()
-            sucess = true
+            sucess = True
         except Exception, e:
             log.warning("Set Status Failed! " + str(e))
             self.mdbConnection.rollback()
-            sucess = false
+            sucess = False
         return sucess
 
 
@@ -194,7 +219,10 @@ def convert(userInfo):
     profile = Profile()
     connection = Connection()
     profile.name = userInfo.name
-    profile.gender = (userInfo.gender == 'male' ? 1 : 0)
+    gender = None
+    if userInfo.gender == u'male': gender = Gender.MALE
+    if userInfo.gender == u'female': gender = Gender.FEMALE
+    profile.gender = gender
     profile.hometown = userInfo.hometown
     profile.residence = userInfo.residence
     profile.birthday = userInfo.birthday
