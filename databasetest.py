@@ -3,6 +3,7 @@
 
 import log
 import globalconfig as GC
+import confidential as CFD
 from database import Status
 from database import Profile
 from database import Connection
@@ -48,7 +49,10 @@ def assertUserInfoConnection(userInfo, connection):
 
 def createConnection():
     db = DataBase()
-    db.init('localhost', 'jxluo', '1q2w3e', 'jxluodb');
+    db.init(CFD.TEST_HOST,
+        CFD.TEST_USER_NAME,
+        CFD.TEST_PWD,
+        CFD.TEST_DATA_BASE);
     return db
 
 def createTables(db):

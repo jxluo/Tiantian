@@ -33,3 +33,12 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# swp for vim
+*.swp
+
+# Log file dir
+log/
+
+# confidential file
+/confidential.py
