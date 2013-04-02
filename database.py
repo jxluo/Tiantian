@@ -80,7 +80,7 @@ class DataBase:
             Returns: {Status} the status which is a integer.
         """
         command = "SELECT status FROM Persons WHERE id = %s;"
-        self.cursor.execute(command, [id])
+        self.cursor.execute(command, [id.encode('utf-8')])
         rows = self.cursor.fetchall()
         if len(rows):
             if len(rows) > 1:
@@ -98,7 +98,7 @@ class DataBase:
             "visitor_number, friend_number, recent_visitor_number," +\
             "home_page_friend_number " +\
             "FROM Persons WHERE id = %s;"
-        self.cursor.execute(command, [id])
+        self.cursor.execute(command, [id.encode('utf-8')])
         rows = self.cursor.fetchall()
         if len(rows):
             if len(rows) > 1:
@@ -132,12 +132,12 @@ class DataBase:
         """
         connection = Connection()
         visitorsCommand = "SELECT visitor FROM RecentVisitors WHERE id = %s;"
-        self.cursor.execute(visitorsCommand, [id])
+        self.cursor.execute(visitorsCommand, [id.encode('utf-8')])
         rows = self.cursor.fetchall()
         for row in rows:
             connection.recentVisitorList.append(row[0])
         friendsCommand = "SELECT friend FROM HomePageFriends WHERE id = %s;"
-        self.cursor.execute(friendsCommand, [id])
+        self.cursor.execute(friendsCommand, [id.encode('utf-8')])
         rows = self.cursor.fetchall()
         for row in rows:
             connection.homePageFriendList.append(row[0])
@@ -168,7 +168,7 @@ class DataBase:
         try:
             profile, connection = convert(userInfo)
             self.cursor.execute(personsCommand, (
-                id, Status.unexpanded,
+                id.encode('utf-8'), Status.unexpanded,
                 profile.name.encode('utf-8'),
                 profile.gender if profile.gender else None,
                 profile.hometown.encode('utf-8') \
@@ -202,7 +202,7 @@ class DataBase:
             "SET status = %s " +\
             "WHERE id = %s"
         try:
-            self.cursor.execute(command, (newStatus, id))
+            self.cursor.execute(command, (newStatus, id.encode('utf-8')))
             self.mdbConnection.commit()
             sucess = True
         except Exception, e:

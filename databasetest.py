@@ -89,7 +89,7 @@ def test(db):
     xiaoming.recentVisitedList = ['123e', '1233', '333']
     xiaoming.friendList = ['3124', '1222', 'dd33']
 
-    qiangziID = '123456777'
+    qiangziID = u'123456777'
     qiangzi = UserInfo()
     qiangzi.name = u'强子'
     qiangzi.gender = 'male'
