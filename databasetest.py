@@ -79,6 +79,9 @@ def dropTables(db):
     script = "DROP TABLE HomePageFriends;"
     db.cursor.execute(script) 
     db.mdbConnection.commit()
+    script = "DROP TABLE StartList;"
+    db.cursor.execute(script) 
+    db.mdbConnection.commit()
 
 def test(db):
     xiaomingID = 'xiaomingID'
@@ -180,6 +183,33 @@ def test(db):
     assert 0 == len(connection.recentVisitorList) # Get inexistent
     assert 0 == len(connection.homePageFriendList)
 
+def testStartList(db):
+    id1 = "start list id 111"
+    time1 = "2012-4-1 15:21:29"
+    id2 = "start list id 222"
+    time2 = "2012-5-1 15:21:29"
+    id3 = "id3333"
+
+    db.insertIntoStartList(id2, time2)
+    db.insertIntoStartList(id1, time1)
+
+    result = db.getStartNodes(2)
+    assert len(result) == 2 , "len = " + str(len(result))
+    assert result[0] == id1
+    assert result[1] == id2
+
+    result = db.getStartNodes(1)
+    assert len(result) == 1
+    assert result[0] == id1
+
+    db.insertIntoStartList(id3)
+    assert len(db.getStartNodes(3)) == 3
+    db.deleteFromStartList(id2)
+    assert len(db.getStartNodes(3)) == 2
+    db.deleteFromStartList(id3)
+    assert len(db.getStartNodes(3)) == 1
+    
+
 def main():
     log.config(GC.LOG_FILE_DIR + 'database_test', 'debug', 'debug')
     db = createConnection()
@@ -187,6 +217,7 @@ def main():
     dropTables(db)
     createTables(db)
     test(db)
+    testStartList(db)
     dropTables(db)
     db.close()
     log.info("Pass the test!")

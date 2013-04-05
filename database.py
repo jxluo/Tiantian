@@ -7,8 +7,7 @@ import log
 
 
 class Status:
-    """ The expand status of a person node.
-    """
+    """The expand status of a person node."""
     (unrecorded, # There is no record in the database of the id.
      unexpanded, # The id has record in the database, but have not 
                  #   fetch it's connection's info from web.
@@ -17,12 +16,11 @@ class Status:
 
 
 class Gender:
-    """ gender enum."""
+    """Gender enum."""
     (MALE, FEMALE) = (1, 2)
 
 class Profile:
-    """ The profile info for a person. 
-    """
+    """The profile info for a person."""
     name = None
     gender = None
     hometown = None
@@ -36,29 +34,28 @@ class Profile:
 
 
 class Connection:
-    """ The connection of a person.
-    """
+    """The connection of a person."""
     def __init__(self):
         self.recentVisitorList = []
         self.homePageFriendList = []
 
 
 class DataBase:
-    """ The class handle the mysql operation, provide a data interface for
+    """The class handle the mysql operation, provide a data interface for
         Crawer and Indexer.
     """
     def init(self, host, username, password, database):
-        """ Initialize the mysql connection.
+        """Initialize the mysql connection.
             
-            Args:
-                @host {string} the name of the host, e.g. 'localhost'.
-                @username {string} the user name of the database account.
-                @password {string} the password.
-                @database {string} the name of the database.
+        Args:
+            @host {string} the name of the host, e.g. 'localhost'.
+            @username {string} the user name of the database account.
+            @password {string} the password.
+            @database {string} the name of the database.
 
-            Reuturns:
-                True if the action success.
-                False if the action failed.
+        Reuturns:
+            True if the action success.
+            False if the action failed.
         """
         try:
             self.mdbConnection = mdb.connect(host, username, 
@@ -71,13 +68,14 @@ class DataBase:
         return sucess
 
     def close(self):
-        """ Close the connection."""
+        """Close the connection."""
         if self.mdbConnection:    
             self.mdbConnection.close()
 
     def getStatus(self, id):
-        """ Get the status for id.
-            Returns: {Status} the status which is a integer.
+        """Get the status for id.
+
+        Returns: {Status} the status which is a integer.
         """
         command = "SELECT status FROM Persons WHERE id = %s;"
         self.cursor.execute(command, [id.encode('utf-8')])
@@ -90,9 +88,10 @@ class DataBase:
             return Status.unrecorded
 
     def getProfile(self, id):
-        """ Get the profile for id.
-            Returns: {Profile} the profile, 
-                None if there is no such person.
+        """Get the profile for id.
+
+        Returns: {Profile} the profile, 
+            None if there is no such person.
         """
         command = "SELECT name, gender, hometown, residence, birthday," +\
             "visitor_number, friend_number, recent_visitor_number," +\
@@ -127,8 +126,9 @@ class DataBase:
             return None
 
     def getConnection(self, id):
-        """ Get the connection for id.
-            Returns: {Connection} the connection, 
+        """Get the connection for id.
+
+        Returns: {Connection} the connection, 
         """
         connection = Connection()
         visitorsCommand = "SELECT visitor FROM RecentVisitors WHERE id = %s;"
@@ -144,11 +144,12 @@ class DataBase:
         return connection
 
     def addRecord(self, id, userInfo):
-        """ Insert a person into database, provided user id and userInfo
+        """Insert a person into database, provided user id and userInfo
             from crawer.
-            Reuturns:
-                True if the action success.
-                False if the action failed.   
+
+        Reuturns:
+            True if the action success.
+            False if the action failed.   
         """
         personsCommand = "INSERT INTO Persons (" +\
             "id, status, " +\
@@ -192,10 +193,11 @@ class DataBase:
         return sucess
 
     def setStatus(self, id, newStatus):
-        """ Set the status for id.
-            Reuturns:
-                True if the action success.
-                False if the action failed.
+        """Set the status for id.
+
+        Reuturns:
+            True if the action success.
+            False if the action failed.
         """
         command =\
             "UPDATE Persons " +\
@@ -211,10 +213,56 @@ class DataBase:
             sucess = False
         return sucess
 
+    def insertIntoStartList(self, id, opt_createdTime=None):
+        """Insert a node into start list."""
+        command = \
+            "INSERT INTO StartList (id, created_time) VALUES(%s, %s);"
+        try:
+            self.cursor.execute(command, [id.encode('utf-8'), opt_createdTime])
+            self.mdbConnection.commit()
+            sucess = True
+        except Exception, e:
+            log.warning("Insert into start list failed!" + str(e))
+            self.mdbConnection.rollback()
+            sucess = False
+        return sucess
+
+    def deleteFromStartList(self, id):
+        """Delete a node from start list."""
+        command = "DELETE FROM StartList WHERE id = %s;"
+        try:
+            self.cursor.execute(command, [id.encode('utf-8')])
+            self.mdbConnection.commit()
+            sucess = True
+        except Exception, e:
+            log.warning("Delete from start list failed!" + str(e))
+            self.mdbConnection.rollback()
+            sucess = False
+        return sucess
+
+    def getStartNodes(self, number=1):
+        """Get start nodes for start one or several crawl thread.
+        
+        Args:
+            number: the number of nodes you would like to get.
+
+        Returns:
+            (): A tuple that contains nodes.
+        """
+        command =\
+            " SELECT id FROM StartList " +\
+            " ORDER BY created_time ASC " +\
+            " LIMIT %s; "
+        self.cursor.execute(command, [number])
+        rows = self.cursor.fetchall()
+        allNodes = [row[0] for row in rows]
+        return allNodes
+
 
 def convert(userInfo):
-    """ Conver a UserInfo object to Profile and Connection.
-        Returns: (Profile, Connection)
+    """Conver a UserInfo object to Profile and Connection.
+
+    Returns: (Profile, Connection)
     """
     profile = Profile()
     connection = Connection()
