@@ -131,10 +131,18 @@ def test(db):
     inexistentID = '8877654321'
 
     # Test add Record
-    assert db.addRecord(xiaomingID, xiaoming) # Add normal
-    assert db.addRecord(qiangziID, qiangzi)
-    assert db.addRecord(achaoID, achao)
-    assert db.addRecord(zhaoshufenID, zhaoshufen)
+    node =  db.addRecord(xiaomingID, xiaoming) # Add normal
+    assert node
+    assertUserInfoProfile(xiaoming, node.profile)
+    node =  db.addRecord(qiangziID, qiangzi) # Add normal
+    assert node
+    assertUserInfoProfile(qiangzi, node.profile)
+    node =  db.addRecord(achaoID, achao) # Add normal
+    assert node
+    assertUserInfoProfile(achao, node.profile)
+    node =  db.addRecord(zhaoshufenID, zhaoshufen) # Add normal
+    assert node
+    assertUserInfoProfile(zhaoshufen, node.profile)
 
     assert not db.addRecord(zhaoshufenID, zhaoshufen) # Add duplicate
     assert not db.addRecord(qiangziID, qiangzi)
@@ -169,6 +177,27 @@ def test(db):
     assert zhaoshufenProfile
     assertUserInfoProfile(zhaoshufen, zhaoshufenProfile)
     assert not db.getProfile(inexistentID) # Get inexistent
+
+    # Test get Status and Profile
+    xiaomingStatus, xiaomingProfile = db.getStatusAndProfile(xiaomingID)
+    assert xiaomingStatus == Status.expanded
+    assert xiaomingProfile
+    assertUserInfoProfile(xiaoming, xiaomingProfile)
+    qiangziStatus, qiangziProfile = db.getStatusAndProfile(qiangziID)
+    assert qiangziStatus == Status.unexpanded
+    assert qiangziProfile
+    assertUserInfoProfile(qiangzi, qiangziProfile)
+    achaoStatus, achaoProfile = db.getStatusAndProfile(achaoID)
+    assert achaoStatus == Status.expanded
+    assert achaoProfile
+    assertUserInfoProfile(achao, achaoProfile)
+    zhaoshufenStatus, zhaoshufenProfile = db.getStatusAndProfile(zhaoshufenID)
+    assert zhaoshufenStatus == Status.unexpanded
+    assert zhaoshufenProfile
+    assertUserInfoProfile(zhaoshufen, zhaoshufenProfile)
+    inexistentStatus, inexistentProfile = db.getStatusAndProfile(inexistentID)
+    assert inexistentStatus == Status.unrecorded
+    assert not inexistentProfile
 
     # Test get Connection
     connection = db.getConnection(xiaomingID)

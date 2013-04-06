@@ -39,6 +39,19 @@ class Connection:
         self.recentVisitorList = []
         self.homePageFriendList = []
 
+class UserNode:
+    """A node represent a user."""
+    id = None
+    status = None
+    profile = None
+    connection = None
+    
+    def __init__(self, id=None, status=None, profile=None, connection=None):
+        self.id = id
+        self.status = status
+        self.profile = profile
+        self.connection = connection
+
 
 class DataBase:
     """The class handle the mysql operation, provide a data interface for
@@ -72,6 +85,15 @@ class DataBase:
         if self.mdbConnection:    
             self.mdbConnection.close()
 
+    def getStatusAndProfile(self, id):
+        """Get status and profile.
+
+        Returns:
+            (Status, Profile) a tuple with status and profile.
+        """
+        return (self.getStatus(id), self.getProfile(id))
+        
+
     def getStatus(self, id):
         """Get the status for id.
 
@@ -90,8 +112,9 @@ class DataBase:
     def getProfile(self, id):
         """Get the profile for id.
 
-        Returns: {Profile} the profile, 
-            None if there is no such person.
+        Returns: 
+            Profile: the profile, 
+            None: if there is no such person.
         """
         command = "SELECT name, gender, hometown, residence, birthday," +\
             "visitor_number, friend_number, recent_visitor_number," +\
@@ -148,8 +171,8 @@ class DataBase:
             from crawer.
 
         Reuturns:
-            True if the action success.
-            False if the action failed.   
+            UserNode: the user node convert from the userInfo.
+            None: if the operation failed.
         """
         personsCommand = "INSERT INTO Persons (" +\
             "id, status, " +\
@@ -190,7 +213,10 @@ class DataBase:
             log.warning("Add Record Failed! " + str(e))
             self.mdbConnection.rollback()
             sucess = False
-        return sucess
+        if sucess:
+            return UserNode(id, Status.unexpanded, profile, connection)
+        else:
+            return None
 
     def setStatus(self, id, newStatus):
         """Set the status for id.
