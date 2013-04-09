@@ -20,17 +20,17 @@ from databasetest import dropTables
 
 def test():
 
-    log.config(GC.LOG_FILE_DIR + 'crawler_test', 'debug', 'debug')
+    log.config(GC.LOG_FILE_DIR + 'crawler_test', 'info', 'info')
     db = createConnection()
     createTables(db)
     dropTables(db)
     createTables(db)
-    agent = RenrenAgent('zhanglini.ok@163.com', '12345678')
+    agent = RenrenAgent('1426108461@qq.com', 'CXM891216')
     agent.login()
     
     crawler = Crawler(agent, db)
     id = "322601086"
-    crawler.crawl(id, 10)
+    crawler.crawl(id, 30)
 
 
 def main():

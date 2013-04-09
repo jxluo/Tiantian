@@ -100,11 +100,11 @@ class RenrenAgent:
         # So we need to do a request again.
         try:
             response = self.opener.open(self.renrenUrl, timeout=5)
+            html = response.read()
         except urllib2.URLError, e:
             #print 'Open guide error: ' + e.reason
             log.error('Open guide error: ' + e.reason)
             return ({}, ErrorCode.URL_ERROR)
-        html = response.read()
         document = BeautifulSoup(html)
         info = {}
         error = 0;
@@ -133,18 +133,18 @@ class RenrenAgent:
         url = RenrenAgent.getProfileUrl(id)
         try:
             response = self.opener.open(url, timeout=5)
+            realUrl = response.geturl()
+            html = response.read()
         except urllib2.URLError, e:
             log.warning('Get profile url error: ' + str(e.reason) +\
                         '. Profile url: ' + url)
             return (None, ErrorCode.URL_ERROR)
 
-        realUrl = response.geturl()
         if re.match(r'.*page.renren.com.*', url):
             # It may be not a personal profile page
             log.warning('Not a personal profile page. Profile url' + url)
             return (None, ErrorCode.UNKNOWN_PAGE)
 
-        html = response.read()
         if saveAllPage:
             util.savePage(html, id + '_profile')
         info, error = self.parseProfileHtml(html)

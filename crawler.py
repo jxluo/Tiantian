@@ -8,6 +8,7 @@ from database import DataBase
 import database
 import time
 import threading
+import log
 
 
 class CrawlerException(Exception):
@@ -63,7 +64,7 @@ class Crawler:
     agent = None; # The renren agent.
     dataBase = None; # The database.
     lastRequestTime = None;
-    MIN_REQ_INTERVAL = 1; # Default to 1 second.
+    MIN_REQ_INTERVAL = 2; # Default to 1 second.
 
     stopSignal = False
     signalLock = None
@@ -135,6 +136,7 @@ class Crawler:
         Raise:
             CrawlerException: happen .
         """
+        log.info("Expand node: " + id)
         # Get the connection of the node.
         if not opt_connection:
             # If opt_connection is not provided.
@@ -238,6 +240,7 @@ class Crawler:
         # Bad things may happen between two database operation, so we firstly
         # insert and then delete.
         self.dataBase.insertIntoStartList(nextId)
+        self.dataBase.setStatus(self.expandingId, database.Status.expanded)
         self.dataBase.deleteFromStartList(self.expandingId)
         self.expandingId = nextId
 
