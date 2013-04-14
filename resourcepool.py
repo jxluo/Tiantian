@@ -2,8 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import renrenagent
+import confidential as CFD
 import MySQLdb as mdb
 import log
+
+
+def createProdRenrenAccountPool():
+    pool = RenrenAccountPool()
+    pool.init(CFD.PROD_RESOURCE_HOST,
+        CFD.PROD_RESOURCE_USERNAME,
+        CFD.PROD_RESOURCE_PASSWORD,
+        CFD.PROD_RESOURCE_DATABASE);
+    return pool
+
+
+def createTestRenrenAccountPool():
+    pool = RenrenAccountPool()
+    pool.init(CFD.TEST_HOST,
+        CFD.TEST_USER_NAME,
+        CFD.TEST_PWD,
+        CFD.TEST_DATA_BASE);
+    return pool
 
 
 class RenrenAccount:
@@ -21,6 +40,9 @@ Attributes:
     requestCount = 0
     accountPool = None
 
+    #dispose related
+    needFinish = True
+
     def __init__(self, username, password, accountPool):
         self.username = username
         self.password = password
@@ -29,12 +51,18 @@ Attributes:
     def finishUsing(self):
         """It will call finishUsing of RenrenAccountPool for updating info."""
         self.accountPool.finishUsing(self)
+        self.needFinish = False
 
     def reportInvalidAccount(self, errorCode, errorInfo=None):
         """It will call reportInvalidAccount of RenrenAccountPool for updating
         info.
         """
         self.accountPool.reportInvalidAccount(self, errorCode, errorInfo)
+        self.needFinish = False
+
+    def dispose(self):
+        if self.needFinish:
+            self.finishUsing()
 
 
 class RenrenAccountLogEvent:
@@ -273,9 +301,12 @@ class RenrenAccountPool:
                     password,
                     RenrenAccountLogEvent.CREATE]);
             self.mdbConnection.commit()
+            success = True
         except Exception, e:
             log.warning(
                 "RenrenAccountPool: add account failed! " +\
                 "username: " + username + "  " +\
                 "password: " + password + "  " + str(e))
             self.mdbConnection.rollback()
+            success = False
+        return success

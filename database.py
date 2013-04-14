@@ -1,10 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import confidential as CFD
 import renrenagent
 import MySQLdb as mdb
 import log
 
+def createTestDataBase():
+    db = DataBase()
+    db.init(CFD.TEST_HOST,
+        CFD.TEST_USER_NAME,
+        CFD.TEST_PWD,
+        CFD.TEST_DATA_BASE);
+    return db
+
+def createProdDataBase():
+    db = DataBase()
+    db.init(CFD.PROD_TIANTIAN_DATA_HOST,
+        CFD.PROD_TIANTIAN_DATA_USERNAME,
+        CFD.PROD_TIANTIAN_DATA_PASSWORD,
+        CFD.PROD_TIANTIAN_DATA_DATABASE);
+    return db
 
 class Status:
     """The expand status of a person node."""
@@ -166,7 +182,7 @@ class DataBase:
             connection.homePageFriendList.append(row[0])
         return connection
 
-    def addRecord(self, id, userInfo):
+    def addRecord(self, id, userInfo, opt_referenceId=None):
         """Insert a person into database, provided user id and userInfo
             from crawer.
 
@@ -179,12 +195,13 @@ class DataBase:
             "name, gender, hometown, " +\
             "residence, birthday, " +\
             "visitor_number, friend_number, " +\
-            "recent_visitor_number, home_page_friend_number) " +\
+            "recent_visitor_number, home_page_friend_number, " +\
+            "create_time, reference_id) " +\
             "VALUES(%s, %s, " +\
             "%s, %s, %s, " +\
             "%s, %s, " +\
             "%s, %s, " +\
-            "%s, %s);"
+            "%s, %s, NOW(), %s);"
         visitorsCommand = "INSERT INTO RecentVisitors (" +\
             "id, visitor) VALUES(%s, %s);"
         friendsCommand = "INSERT INTO HomePageFriends (" +\
@@ -202,7 +219,8 @@ class DataBase:
                 profile.birthday.encode('utf-8') \
                     if profile.birthday else None,
                 profile.visitorNum, profile.friendNum,
-                profile.recentVisitorNum, profile.homePageFriendNum))
+                profile.recentVisitorNum, profile.homePageFriendNum,
+                opt_referenceId.encode('utf-8') if opt_referenceId else None))
             for visitor in connection.recentVisitorList:
                 self.cursor.execute(visitorsCommand, (id, visitor))
             for friend in connection.homePageFriendList:
@@ -239,12 +257,12 @@ class DataBase:
             sucess = False
         return sucess
 
-    def insertIntoStartList(self, id, opt_createdTime=None):
+    def insertIntoStartList(self, id, opt_lastModified=None):
         """Insert a node into start list."""
         command = \
-            "INSERT INTO StartList (id, created_time) VALUES(%s, %s);"
+            "INSERT INTO StartList (id, last_modified) VALUES(%s, %s);"
         try:
-            self.cursor.execute(command, [id.encode('utf-8'), opt_createdTime])
+            self.cursor.execute(command, [id.encode('utf-8'), opt_lastModified])
             self.mdbConnection.commit()
             sucess = True
         except Exception, e:
@@ -277,12 +295,27 @@ class DataBase:
         """
         command =\
             " SELECT id FROM StartList " +\
-            " ORDER BY created_time ASC " +\
+            " ORDER BY last_modified ASC " +\
             " LIMIT %s; "
         self.cursor.execute(command, [number])
         rows = self.cursor.fetchall()
         allNodes = [row[0] for row in rows]
         return allNodes
+    
+    def replaceStartNode(self, originId, newId):
+        """Replace a old node with new id."""
+        command = "UPDATE StartList SET id = %s WHERE id = %s;"
+        try:
+            self.cursor.execute(command, [
+                newId.encode('utf-8'),
+                originId.encode('utf-8')])
+            self.mdbConnection.commit()
+            sucess = True
+        except Exception, e:
+            log.warning("Replace start list node failed!" + str(e))
+            self.mdbConnection.rollback()
+            sucess = False
+        return sucess
 
 
 def convert(userInfo):

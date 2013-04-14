@@ -5,6 +5,8 @@ from renrenagent import UserInfo
 from renrenagent import RenrenAgent
 from database import UserNode
 from database import DataBase
+from resourcepool import RenrenAccount
+from resourcepool import RenrenAccountErrorCode
 import database
 import time
 import threading
@@ -31,10 +33,11 @@ class CrawlerErrorCode:
      GET_EXPANDING_NODE_FAILED, # Failed to get a node to expand.
      EXPAND_EXPANDED_NODE, # Try to expand a expanded node.
      NO_NODE_TO_EXPAND, # No available node for next expand.
-     AGENT_ERROR,
-     DATABASE_ERROR,
+     LOGIN_FAILED, # Login to renren.com failed.
+     REQUEST_FAILED, # Request to renren.com failed.
+     REACH_REQUEST_LIMIT, # Reach request limit for current account.
      UNKNOWN 
-     ) = range(0, 8)
+     ) = range(0, 9)
 
 
 class Crawler:
@@ -61,24 +64,39 @@ class Crawler:
         signalLock: {threading.RLock} Lock to set or get stop signal.
         expandingId: {string} the id that is expanding.
     """
-    agent = None; # The renren agent.
-    dataBase = None; # The database.
-    lastRequestTime = None;
-    MIN_REQ_INTERVAL = 2; # Default to 1 second.
+    agent = None # The renren agent.
+    account = None # The renren account.
+    dataBase = None # The database.
+    lastRequestTime = None
+    MIN_REQ_INTERVAL = 1 # Default to 1 second.
+    REQUEST_LIMIT = 80 # Request limit for account.
+    RETRY_LIMIT = 2 # Limit for retry request.
+
+    failedRequestCount = 0 # Count for failed request.
+    FAILED_REQUEST_LIMIT = 4 # Failed request limit.
 
     stopSignal = False
     signalLock = None
 
     expandingId = None
 
-    def __init__(self, agent, dataBase):
+    def init(self, account, dataBase):
         """Initialize the crawler, set the agent and database."""
-        self.agent = agent
-        assert self.agent.isLogin, "The crawler have a agent without login!"
+        self.account = account
         self.dataBase = dataBase
-
         self.stopSignal = False
         self.signalLock = threading.RLock()
+
+        self.agent = RenrenAgent(account.username, account.password)
+        self.agent.login()
+        self.account.isLogin = self.agent.isLogin
+        if not self.agent.isLogin:
+            # Fail to login
+            self.account.reportInvalidAccount(
+                RenrenAccountErrorCode.ERROR_WHEN_LOGIN)
+            raise CrawlerException(
+                "Login to renren.com failed!",
+                CrawlerErrorCode.LOGIN_FAILED)
 
     def crawl(self, id, opt_number=None):
         """Crawls from renren.com.
@@ -134,7 +152,7 @@ class Crawler:
             UserNode: the node for next expand.
         
         Raise:
-            CrawlerException: happen .
+            CrawlerException: happen.
         """
         log.info("Expand node: " + id)
         # Get the connection of the node.
@@ -204,24 +222,49 @@ class Crawler:
         Returns:
             UserNode: the UserNode of the user with given id.
             None: if the request failed. 
+        
+        Raise:
+            CrawlerException: happen.
         """
-        now = time.time()
-        if self.lastRequestTime:
-            interval = now - self.lastRequestTime
-            if interval  < self.MIN_REQ_INTERVAL:
-                time.sleep(self.MIN_REQ_INTERVAL - interval)
+        for i in range(0, self.RETRY_LIMIT):
+            now = time.time()
+            if self.lastRequestTime:
+                interval = now - self.lastRequestTime
+                if interval  < self.MIN_REQ_INTERVAL:
+                    time.sleep(self.MIN_REQ_INTERVAL - interval)
 
-        # TODO: Investigate the behavior of SIG_INT in single thread and multi
-        # thread program, then determin if detectStopSignal after sleep is
-        # necessary.
-        self.detectStopSignal()
-        userInfo, error = self.agent.getProfile(id)
-        self.lastRequestTime = time.time()
+            # TODO: Investigate the behavior of SIG_INT in single thread and multi
+            # thread program, then determin if detectStopSignal after sleep is
+            # necessary.
+            self.detectStopSignal()
+            userInfo, error = self.agent.getProfile(id)
+            self.account.requestCount += 1
+            self.lastRequestTime = time.time()
+
+            if not error:
+                break;
         
         if error:
-            # TODO: Need retry in the future?
+            # Request failed.
+            # It's hard to tell whether the failed request is cause by
+            # invalid account. So we count it and when exceed limit, raise
+            # a exception.
+            self.failedRequestCount += 1
+            if self.failedRequestCount >= self.FAILED_REQUEST_LIMIT:
+                self.account.reportInvalidAccount(
+                    RenrenAccountErrorCode.ERROR_WHEN_REQUEST)
+                raise CrawlerException(
+                    "HTTP request failed.",
+                    CrawlerErrorCode.REQUEST_FAILED)
             return None
-        node = self.dataBase.addRecord(id, userInfo)
+
+        node = self.dataBase.addRecord(id, userInfo, self.expandingId)
+        if self.account.requestCount >= self.REQUEST_LIMIT:
+            # Reach request limit
+            self.account.finishUsing()
+            raise CrawlerException(
+                "Reach request limit for current account.",
+                CrawlerErrorCode.REACH_REQUEST_LIMIT)
         return node
 
     def calculateScore(self, node):
@@ -238,10 +281,9 @@ class Crawler:
     def saveIntermediateResult(self, nextId):
         """Save intermediate result to StartList."""
         # Bad things may happen between two database operation, so we firstly
-        # insert and then delete.
-        self.dataBase.insertIntoStartList(nextId)
+        # replace and then set the status.
+        self.dataBase.replaceStartNode(self.expandingId, nextId)
         self.dataBase.setStatus(self.expandingId, database.Status.expanded)
-        self.dataBase.deleteFromStartList(self.expandingId)
         self.expandingId = nextId
 
     def clearStopSignal(self):
@@ -264,3 +306,7 @@ class Crawler:
         if signal:
             raise CrawlerException(
                 "Detect stop signal!", CrawlerErrorCode.DETECT_STOP_SIGNAL)
+
+    def dispose(self):
+        """Dispose the crawler"""
+        self.account.dispose()

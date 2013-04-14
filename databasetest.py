@@ -137,10 +137,10 @@ def test(db):
     node =  db.addRecord(qiangziID, qiangzi) # Add normal
     assert node
     assertUserInfoProfile(qiangzi, node.profile)
-    node =  db.addRecord(achaoID, achao) # Add normal
+    node =  db.addRecord(achaoID, achao, xiaomingID) # Add normal
     assert node
     assertUserInfoProfile(achao, node.profile)
-    node =  db.addRecord(zhaoshufenID, zhaoshufen) # Add normal
+    node =  db.addRecord(zhaoshufenID, zhaoshufen, xiaomingID) # Add normal
     assert node
     assertUserInfoProfile(zhaoshufen, node.profile)
 
@@ -218,6 +218,7 @@ def testStartList(db):
     id2 = "start list id 222"
     time2 = "2012-5-1 15:21:29"
     id3 = "id3333"
+    newId = 'new_id'
 
     db.insertIntoStartList(id2, time2)
     db.insertIntoStartList(id1, time1)
@@ -237,6 +238,10 @@ def testStartList(db):
     assert len(db.getStartNodes(3)) == 2
     db.deleteFromStartList(id3)
     assert len(db.getStartNodes(3)) == 1
+
+    db.replaceStartNode(id1, newId) 
+    assert len(db.getStartNodes(3)) == 1
+    assert db.getStartNodes(3)[0] == newId
     
 
 def main():
