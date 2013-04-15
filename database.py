@@ -5,6 +5,7 @@ import confidential as CFD
 import renrenagent
 import MySQLdb as mdb
 import log
+import threading
 
 def createTestDataBase():
     db = DataBase()
@@ -73,6 +74,9 @@ class DataBase:
     """The class handle the mysql operation, provide a data interface for
         Crawer and Indexer.
     """
+
+    LOCK = threading.RLock()
+
     def init(self, host, username, password, database):
         """Initialize the mysql connection.
             
@@ -115,15 +119,19 @@ class DataBase:
 
         Returns: {Status} the status which is a integer.
         """
-        command = "SELECT status FROM Persons WHERE id = %s;"
-        self.cursor.execute(command, [id.encode('utf-8')])
-        rows = self.cursor.fetchall()
-        if len(rows):
-            if len(rows) > 1:
-                log.warning("Mutiple result for id: " + id)
-            return rows[0][0]
-        else:
-            return Status.unrecorded
+        DataBase.acquireLock()
+        try:
+            command = "SELECT status FROM Persons WHERE id = %s;"
+            self.cursor.execute(command, [id.encode('utf-8')])
+            rows = self.cursor.fetchall()
+            if len(rows):
+                if len(rows) > 1:
+                    log.warning("Mutiple result for id: " + id)
+                return rows[0][0]
+            else:
+                return Status.unrecorded
+        finally:
+            DataBase.releaseLock()
 
     def getProfile(self, id):
         """Get the profile for id.
@@ -132,55 +140,63 @@ class DataBase:
             Profile: the profile, 
             None: if there is no such person.
         """
-        command = "SELECT name, gender, hometown, residence, birthday," +\
-            "visitor_number, friend_number, recent_visitor_number," +\
-            "home_page_friend_number " +\
-            "FROM Persons WHERE id = %s;"
-        self.cursor.execute(command, [id.encode('utf-8')])
-        rows = self.cursor.fetchall()
-        if len(rows):
-            if len(rows) > 1:
-                log.warning("Mutiple result for id: " + id)
-            profile = Profile()
-            profile.name,\
-            profile.gender,\
-            profile.hometown,\
-            profile.residence,\
-            profile.birthday,\
-            profile.visitorNum,\
-            profile.friendNum,\
-            profile.recentVisitorNum,\
-            profile.homePageFriendNum = rows[0]
-            # Decode the string
-            if profile.name:
-                profile.name = profile.name.decode('utf-8')
-            if profile.hometown:
-                profile.hometown = profile.hometown.decode('utf-8')
-            if profile.residence:
-                profile.residence = profile.residence.decode('utf-8')
-            if profile.birthday:
-                profile.birthday = profile.birthday.decode('utf-8')
-            return profile
-        else:
-            return None
+        DataBase.acquireLock()
+        try:
+            command = "SELECT name, gender, hometown, residence, birthday," +\
+                "visitor_number, friend_number, recent_visitor_number," +\
+                "home_page_friend_number " +\
+                "FROM Persons WHERE id = %s;"
+            self.cursor.execute(command, [id.encode('utf-8')])
+            rows = self.cursor.fetchall()
+            if len(rows):
+                if len(rows) > 1:
+                    log.warning("Mutiple result for id: " + id)
+                profile = Profile()
+                profile.name,\
+                profile.gender,\
+                profile.hometown,\
+                profile.residence,\
+                profile.birthday,\
+                profile.visitorNum,\
+                profile.friendNum,\
+                profile.recentVisitorNum,\
+                profile.homePageFriendNum = rows[0]
+                # Decode the string
+                if profile.name:
+                    profile.name = profile.name.decode('utf-8')
+                if profile.hometown:
+                    profile.hometown = profile.hometown.decode('utf-8')
+                if profile.residence:
+                    profile.residence = profile.residence.decode('utf-8')
+                if profile.birthday:
+                    profile.birthday = profile.birthday.decode('utf-8')
+                return profile
+            else:
+                return None
+        finally:
+            DataBase.releaseLock()
 
     def getConnection(self, id):
         """Get the connection for id.
 
         Returns: {Connection} the connection, 
         """
-        connection = Connection()
-        visitorsCommand = "SELECT visitor FROM RecentVisitors WHERE id = %s;"
-        self.cursor.execute(visitorsCommand, [id.encode('utf-8')])
-        rows = self.cursor.fetchall()
-        for row in rows:
-            connection.recentVisitorList.append(row[0])
-        friendsCommand = "SELECT friend FROM HomePageFriends WHERE id = %s;"
-        self.cursor.execute(friendsCommand, [id.encode('utf-8')])
-        rows = self.cursor.fetchall()
-        for row in rows:
-            connection.homePageFriendList.append(row[0])
-        return connection
+        DataBase.acquireLock()
+        try:
+            connection = Connection()
+            visitorsCommand = "SELECT visitor FROM RecentVisitors WHERE id = %s;"
+            self.cursor.execute(visitorsCommand, [id.encode('utf-8')])
+            rows = self.cursor.fetchall()
+            for row in rows:
+                connection.recentVisitorList.append(row[0])
+            friendsCommand = "SELECT friend FROM HomePageFriends WHERE id = %s;"
+            self.cursor.execute(friendsCommand, [id.encode('utf-8')])
+            rows = self.cursor.fetchall()
+            for row in rows:
+                connection.homePageFriendList.append(row[0])
+            return connection
+        finally:
+            DataBase.releaseLock()
 
     def addRecord(self, id, userInfo, opt_referenceId=None):
         """Insert a person into database, provided user id and userInfo
@@ -190,23 +206,24 @@ class DataBase:
             UserNode: the user node convert from the userInfo.
             None: if the operation failed.
         """
-        personsCommand = "INSERT INTO Persons (" +\
-            "id, status, " +\
-            "name, gender, hometown, " +\
-            "residence, birthday, " +\
-            "visitor_number, friend_number, " +\
-            "recent_visitor_number, home_page_friend_number, " +\
-            "create_time, reference_id) " +\
-            "VALUES(%s, %s, " +\
-            "%s, %s, %s, " +\
-            "%s, %s, " +\
-            "%s, %s, " +\
-            "%s, %s, NOW(), %s);"
-        visitorsCommand = "INSERT INTO RecentVisitors (" +\
-            "id, visitor) VALUES(%s, %s);"
-        friendsCommand = "INSERT INTO HomePageFriends (" +\
-            "id, friend) VALUES(%s, %s);"
+        DataBase.acquireLock()
         try:
+            personsCommand = "INSERT INTO Persons (" +\
+                "id, status, " +\
+                "name, gender, hometown, " +\
+                "residence, birthday, " +\
+                "visitor_number, friend_number, " +\
+                "recent_visitor_number, home_page_friend_number, " +\
+                "create_time, reference_id) " +\
+                "VALUES(%s, %s, " +\
+                "%s, %s, %s, " +\
+                "%s, %s, " +\
+                "%s, %s, " +\
+                "%s, %s, NOW(), %s);"
+            visitorsCommand = "INSERT INTO RecentVisitors (" +\
+                "id, visitor) VALUES(%s, %s);"
+            friendsCommand = "INSERT INTO HomePageFriends (" +\
+                "id, friend) VALUES(%s, %s);"
             profile, connection = convert(userInfo)
             self.cursor.execute(personsCommand, (
                 id.encode('utf-8'), Status.unexpanded,
@@ -231,6 +248,8 @@ class DataBase:
             log.warning("Add Record Failed! " + str(e))
             self.mdbConnection.rollback()
             sucess = False
+        finally:
+            DataBase.releaseLock()
         if sucess:
             return UserNode(id, Status.unexpanded, profile, connection)
         else:
@@ -243,11 +262,12 @@ class DataBase:
             True if the action success.
             False if the action failed.
         """
-        command =\
-            "UPDATE Persons " +\
-            "SET status = %s " +\
-            "WHERE id = %s"
+        DataBase.acquireLock()
         try:
+            command =\
+                "UPDATE Persons " +\
+                "SET status = %s " +\
+                "WHERE id = %s"
             self.cursor.execute(command, (newStatus, id.encode('utf-8')))
             self.mdbConnection.commit()
             sucess = True
@@ -255,13 +275,16 @@ class DataBase:
             log.warning("Set Status Failed! " + str(e))
             self.mdbConnection.rollback()
             sucess = False
+        finally:
+            DataBase.releaseLock()
         return sucess
 
     def insertIntoStartList(self, id, opt_lastModified=None):
         """Insert a node into start list."""
-        command = \
-            "INSERT INTO StartList (id, last_modified) VALUES(%s, %s);"
+        DataBase.acquireLock()
         try:
+            command = \
+                "INSERT INTO StartList (id, last_modified) VALUES(%s, %s);"
             self.cursor.execute(command, [id.encode('utf-8'), opt_lastModified])
             self.mdbConnection.commit()
             sucess = True
@@ -269,12 +292,15 @@ class DataBase:
             log.warning("Insert into start list failed!" + str(e))
             self.mdbConnection.rollback()
             sucess = False
+        finally:
+            DataBase.releaseLock()
         return sucess
 
     def deleteFromStartList(self, id):
         """Delete a node from start list."""
-        command = "DELETE FROM StartList WHERE id = %s;"
+        DataBase.acquireLock()
         try:
+            command = "DELETE FROM StartList WHERE id = %s;"
             self.cursor.execute(command, [id.encode('utf-8')])
             self.mdbConnection.commit()
             sucess = True
@@ -282,7 +308,17 @@ class DataBase:
             log.warning("Delete from start list failed!" + str(e))
             self.mdbConnection.rollback()
             sucess = False
+        finally:
+            DataBase.releaseLock()
         return sucess
+
+    def getStartNode(self):
+        """Get one start node."""
+        ids = self.getStartNodes(1)
+        if len(ids) < 1:
+            return None
+        else:
+            return ids[0]
 
     def getStartNodes(self, number=1):
         """Get start nodes for start one or several crawl thread.
@@ -293,19 +329,24 @@ class DataBase:
         Returns:
             (): A tuple that contains nodes.
         """
-        command =\
-            " SELECT id FROM StartList " +\
-            " ORDER BY last_modified ASC " +\
-            " LIMIT %s; "
-        self.cursor.execute(command, [number])
-        rows = self.cursor.fetchall()
-        allNodes = [row[0] for row in rows]
-        return allNodes
+        DataBase.acquireLock()
+        try:
+            command =\
+                " SELECT id FROM StartList " +\
+                " ORDER BY last_modified ASC " +\
+                " LIMIT %s; "
+            self.cursor.execute(command, [number])
+            rows = self.cursor.fetchall()
+            allNodes = [row[0] for row in rows]
+            return allNodes
+        finally:
+            DataBase.releaseLock()
     
     def replaceStartNode(self, originId, newId):
         """Replace a old node with new id."""
-        command = "UPDATE StartList SET id = %s WHERE id = %s;"
+        DataBase.acquireLock()
         try:
+            command = "UPDATE StartList SET id = %s WHERE id = %s;"
             self.cursor.execute(command, [
                 newId.encode('utf-8'),
                 originId.encode('utf-8')])
@@ -315,8 +356,17 @@ class DataBase:
             log.warning("Replace start list node failed!" + str(e))
             self.mdbConnection.rollback()
             sucess = False
+        finally:
+            DataBase.releaseLock()
         return sucess
 
+    @staticmethod
+    def acquireLock():
+        DataBase.LOCK.acquire()
+
+    @staticmethod
+    def releaseLock():
+        DataBase.LOCK.release()
 
 def convert(userInfo):
     """Conver a UserInfo object to Profile and Connection.

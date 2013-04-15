@@ -17,56 +17,88 @@ from crawler import Crawler
 from crawler import CrawlerException
 from crawler import CrawlerErrorCode
 
+import threading
+
 currentCrawler = None
 stopSignal = False
 
 def detectSignal(a, b):
-    print "Signal detect"
-    global currentCrawler
-    global stopSignal
-    stopSignal = True
-    if currentCrawler:
-        currentCrawler.setStopSignal()
+    print "INT Signal detect"
+    Crawler.setStopSignal()
 
-class CrawlManager:
 
+class CrawlThread(threading.Thread):
+    """A single crawling thread."""
+    threadId = 0
+    startNodeId = None
     accountLimit = 100
-
     dataBase = None
     renrenAccountPool = None
 
-    def __init__(self):
-        pass
+    def __init__(self, tid, startNodeId, dataBase, pool, accountLimit):
+        threading.Thread.__init__(self)
+        log.info("Create thread " + str(tid))
+        self.threadId = tid
+        self.startNodeId = startNodeId
+        self.dataBase = dataBase
+        self.renrenAccountPool = pool
+        self.accountLimit = accountLimit
+
+    def run(self):
+        log.info("Thread " + str(self.threadId) + ": run......")
+        for i in range(0, self.accountLimit):
+            account = self.renrenAccountPool.getAccount()
+            try:
+                id = self.dataBase.getStartNode()
+                if not account or not id:
+                    log.warning('Thread ' + str(self.threadId) +\
+                        ': No account or start node!')
+                    break
+                self.singleCrawl(account, id)
+            except CrawlerException, e:
+                break
+            finally:
+                if not account: account.dispose()
+
+    def singleCrawl(self, account, startId):
+        crawler = Crawler()
+        try:
+            crawler.init(account, self.dataBase)
+            crawler.crawl(startId, 100)
+        except CrawlerException, e:
+            log.info("Thread " + str(self.threadId) +\
+                "Crawler end with exception, reason: " + str(e))
+            if e.errorCode == CrawlerErrorCode.DETECT_STOP_SIGNAL:
+                raise e
+        finally:
+            crawler.dispose()
+
+
+class CrawlManager:
+
+    threadNumber = 10
+    accountLimit = 100
+    dataBase = None
+    renrenAccountPool = None
 
     def startCrawling(self):
         self.dataBase = createProdDataBase()
         self.renrenAccountPool = createProdRenrenAccountPool()
-        accounts = self.renrenAccountPool.getAccounts(self.accountLimit) 
-        for account in accounts:
-            ids = self.dataBase.getStartNodes(1)
-            if len(ids) == 0:
-                log.error('No node in start list, end process.')
-                return
-            if stopSignal:
-                return
-            self.singleCrawl(account, ids[0])
 
-    def singleCrawl(self, account, startId):
-        crawler = Crawler()
-        global currentCrawler
-        # TODO: Bad asyn code, refine it later.
-        currentCrawler = crawler
-        try:
-            crawler.init(account, self.dataBase)
-            crawler.crawl(startId, 100)
-            log.info("Crawler end.")
-        except CrawlerException, e:
-            log.info("Crawler end with exception, reason: " + str(e))
-        finally:
-            crawler.dispose()
+        threads = []
+        for i in range(0, self.threadNumber):
+            thread = CrawlThread(
+                i, self.dataBase, self.renrenAccountPool, self.accountLimit)
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+        log.info("Main thread end....")
+        
         
 def main():
-    log.config(GC.LOG_FILE_DIR + 'crawler_test', 'info', 'info')
+    log.config(GC.LOG_FILE_DIR + 'CrawlManager', 'info', 'info')
     signal.signal(signal.SIGINT, detectSignal)
     manager = CrawlManager()
     manager.startCrawling()

@@ -68,15 +68,17 @@ class Crawler:
     account = None # The renren account.
     dataBase = None # The database.
     lastRequestTime = None
+
+    failedRequestCount = 0 # Count for failed request.
+
+    # Static Attribute
     MIN_REQ_INTERVAL = 1 # Default to 1 second.
     REQUEST_LIMIT = 80 # Request limit for account.
     RETRY_LIMIT = 2 # Limit for retry request.
-
-    failedRequestCount = 0 # Count for failed request.
     FAILED_REQUEST_LIMIT = 4 # Failed request limit.
 
-    stopSignal = False
-    signalLock = None
+    STOP_SIGNAL = False
+    SIGNAL_LOCK = threading.RLock()
 
     expandingId = None
 
@@ -84,9 +86,8 @@ class Crawler:
         """Initialize the crawler, set the agent and database."""
         self.account = account
         self.dataBase = dataBase
-        self.stopSignal = False
-        self.signalLock = threading.RLock()
 
+        self.detectStopSignal()
         self.agent = RenrenAgent(account.username, account.password)
         self.agent.login()
         self.account.isLogin = self.agent.isLogin
@@ -119,21 +120,17 @@ class Crawler:
         self.expandingId = id
         connection = None
         i = 0
-        try:
-            while 1:
-                node = self.expand(nextId, connection)
-                nextId = node.id
-                connection = node.connection
-                self.saveIntermediateResult(nextId)
-                self.detectStopSignal()
-                i += 1
-                if opt_number and i >= opt_number:
-                    break
-        except CrawlerException, e:
-            if e.errorCode == CrawlerErrorCode.DETECT_STOP_SIGNAL:
-                return
-            else:
-                raise e # Throws it to upper class.
+        self.detectStopSignal()
+
+        while 1:
+            node = self.expand(nextId, connection)
+            nextId = node.id
+            connection = node.connection
+            self.saveIntermediateResult(nextId)
+            self.detectStopSignal()
+            i += 1
+            if opt_number and i >= opt_number:
+                break
 
     def expand(self, id, opt_connection=None):
         """Expand the node with given id.
@@ -286,23 +283,26 @@ class Crawler:
         self.dataBase.setStatus(self.expandingId, database.Status.expanded)
         self.expandingId = nextId
 
-    def clearStopSignal(self):
+    @staticmethod
+    def clearStopSignal():
         """Clear the stop signal. This function may be call in other thread."""
-        self.signalLock.acquire()
-        self.stopSignal = False
-        self.signalLock.release()
+        Crawler.SIGNAL_LOCK.acquire()
+        Crawler.STOP_SIGNAL = False
+        Crawler.SIGNAL_LOCK.release()
 
-    def setStopSignal(self):
+    @staticmethod
+    def setStopSignal():
         """Set a stop signal. This function may be call in other thread."""
-        self.signalLock.acquire()
-        self.stopSignal = True
-        self.signalLock.release()
+        Crawler.SIGNAL_LOCK.acquire()
+        Crawler.STOP_SIGNAL = True
+        Crawler.SIGNAL_LOCK.release()
 
-    def detectStopSignal(self):
+    @staticmethod
+    def detectStopSignal():
         """Detect stop signal, if have, raise a CrawlerException."""
-        self.signalLock.acquire()
-        signal = self.stopSignal
-        self.signalLock.release()
+        Crawler.SIGNAL_LOCK.acquire()
+        signal = Crawler.STOP_SIGNAL
+        Crawler.SIGNAL_LOCK.release()
         if signal:
             raise CrawlerException(
                 "Detect stop signal!", CrawlerErrorCode.DETECT_STOP_SIGNAL)

@@ -69,6 +69,8 @@ class RenrenAgent:
     loginUrl = 'http://www.renren.com/PLogin.do'
     renrenUrl = 'http://www.renren.com/'
 
+    TIME_OUT = 30 # In seconds
+
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -89,7 +91,7 @@ class RenrenAgent:
         postData = urlencode(loginData)
         req = urllib2.Request(self.loginUrl, postData)
         try:
-            response = self.opener.open(req, timeout=5)
+            response = self.opener.open(req, timeout=self.TIME_OUT)
         except urllib2.URLError, e:
             #print 'Login error: ' + e.reason
             log.error('Login error: ' + e.reason)
@@ -99,11 +101,12 @@ class RenrenAgent:
         # The first login page may not directly go to guide page.
         # So we need to do a request again.
         try:
-            response = self.opener.open(self.renrenUrl, timeout=5)
+            response = self.opener.open(self.renrenUrl, timeout=self.TIME_OUT)
             html = response.read()
-        except urllib2.URLError, e:
-            #print 'Open guide error: ' + e.reason
-            log.error('Open guide error: ' + e.reason)
+        except Exception, e:
+            # TODO: use e.reason or other appropriate exceition if possible
+            # The another possible exception is stock.timeout: time out
+            log.error('Open guide error: ' + str(e))
             return ({}, ErrorCode.URL_ERROR)
         document = BeautifulSoup(html)
         info = {}
@@ -132,11 +135,13 @@ class RenrenAgent:
             return (None, ErrorCode.NO_LOGIN)
         url = RenrenAgent.getProfileUrl(id)
         try:
-            response = self.opener.open(url, timeout=5)
+            response = self.opener.open(url, timeout=self.TIME_OUT)
             realUrl = response.geturl()
             html = response.read()
-        except urllib2.URLError, e:
-            log.warning('Get profile url error: ' + str(e.reason) +\
+        except Exception, e:
+            # TODO: use e.reason or other appropriate exceition if possible
+            # The another possible exception is stock.timeout: time out
+            log.warning('Get profile url error: ' + str(e) +\
                         '. Profile url: ' + url)
             return (None, ErrorCode.URL_ERROR)
 

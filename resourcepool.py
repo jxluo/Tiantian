@@ -5,7 +5,7 @@ import renrenagent
 import confidential as CFD
 import MySQLdb as mdb
 import log
-
+import threading
 
 def createProdRenrenAccountPool():
     pool = RenrenAccountPool()
@@ -85,6 +85,8 @@ class RenrenAccountErrorCode:
 class RenrenAccountPool:
     """Resource pool for renren accounts."""
 
+    LOCK = threading.RLock()
+
     def init(self, host, username, password, database):
         """Initialize the mysql connection.
             
@@ -113,38 +115,47 @@ class RenrenAccountPool:
         if self.mdbConnection:    
             self.mdbConnection.close()
 
+    def getAccount(self):
+        """Get one available account."""
+        result = self.getAccounts(1)
+        if len(result) < 1:
+            return None
+        else:
+            return result[0]
+
     def getAccounts(self, number):
         """Get a list of RenrenAccount.
 
         Read some accounts from database, mark them as using and write to
         log table.
         """
-        selectCommand = """
-            SELECT username, password FROM RenrenAccounts
-            WHERE is_using = 0 AND
-                is_valid = 1 AND
-                last_used_time <= DATE_SUB(NOW(), INTERVAL 1 DAY)
-            ORDER BY last_used_time ASC
-            LIMIT %s;
-        """
-        self.cursor.execute(selectCommand, [number])
-        rows = self.cursor.fetchall()
+        RenrenAccountPool.acquireLock()
         accounts = []
-        for row in rows:
-            accounts.append(RenrenAccount(row[0], row[1], self))
+        try:
+            selectCommand = """
+                SELECT username, password FROM RenrenAccounts
+                WHERE is_using = 0 AND
+                    is_valid = 1 AND
+                    last_used_time <= DATE_SUB(NOW(), INTERVAL 1 DAY)
+                ORDER BY last_used_time ASC
+                LIMIT %s;
+            """
+            self.cursor.execute(selectCommand, [number])
+            rows = self.cursor.fetchall()
+            for row in rows:
+                accounts.append(RenrenAccount(row[0], row[1], self))
 
-        updateCommand = """
-            UPDATE RenrenAccounts
-            SET is_using = 1
-            WHERE username = %s AND password = %s;
-        """
-        insertCommand = """
-            INSERT INTO RenrenAccountsLog (
-                username, password, event) VALUES(
-                %s, %s, %s);
-        """
-        for account in accounts:
-            try:
+            updateCommand = """
+                UPDATE RenrenAccounts
+                SET is_using = 1
+                WHERE username = %s AND password = %s;
+            """
+            insertCommand = """
+                INSERT INTO RenrenAccountsLog (
+                    username, password, event) VALUES(
+                    %s, %s, %s);
+            """
+            for account in accounts:
                 self.cursor.execute(
                     updateCommand, [account.username, account.password]);
                 self.cursor.execute(
@@ -153,10 +164,12 @@ class RenrenAccountPool:
                         account.password,
                         RenrenAccountLogEvent.USE]);
                 self.mdbConnection.commit()
-            except Exception, e:
-                log.warning(
-                    "RenrenAccountPool: set is_using = True failed! " + str(e))
-                self.mdbConnection.rollback()
+        except Exception, e:
+            log.warning(
+                "RenrenAccountPool: set is_using = True failed! " + str(e))
+            self.mdbConnection.rollback()
+        finally:
+            RenrenAccountPool.releaseLock()
         return accounts
 
 
@@ -166,26 +179,27 @@ class RenrenAccountPool:
         Set is_using = false for the account, update account infomation and
         insert a log into log table.
         """
-        updateCommand = """
-            UPDATE RenrenAccounts
-            SET is_using = 0,
-                login_count = %s + login_count,
-                request_count = %s + request_count,
-                last_used_time = NOW()
-            WHERE username = %s AND password = %s;
-        """
-        updateCommandNoUse = """
-            UPDATE RenrenAccounts
-            SET is_using = 0
-            WHERE username = %s AND password = %s;
-        """
-        insertCommand = """
-            INSERT INTO RenrenAccountsLog (
-                username, password, event, is_login, request_count) VALUES(
-                %s, %s, %s, %s, %s);
-        """
-        loginCount = 1 if account.isLogin else 0
+        RenrenAccountPool.acquireLock()
         try:
+            updateCommand = """
+                UPDATE RenrenAccounts
+                SET is_using = 0,
+                    login_count = %s + login_count,
+                    request_count = %s + request_count,
+                    last_used_time = NOW()
+                WHERE username = %s AND password = %s;
+            """
+            updateCommandNoUse = """
+                UPDATE RenrenAccounts
+                SET is_using = 0
+                WHERE username = %s AND password = %s;
+            """
+            insertCommand = """
+                INSERT INTO RenrenAccountsLog (
+                    username, password, event, is_login, request_count) VALUES(
+                    %s, %s, %s, %s, %s);
+            """
+            loginCount = 1 if account.isLogin else 0
             if not account.isLogin and account.requestCount == 0:
                 self.cursor.execute(
                     updateCommandNoUse, [
@@ -212,6 +226,8 @@ class RenrenAccountPool:
                 "username: " + account.username + "  " +\
                 "password: " + account.password + "  " + str(e))
             self.mdbConnection.rollback()
+        finally:
+            RenrenAccountPool.releaseLock()
 
     def reportInvalidAccount(self, account, errorCode, errorInfo=None):
         """Update database when a RenrenAccoun become invalid.
@@ -219,32 +235,33 @@ class RenrenAccountPool:
         Set is_using = false and is_valid = fale the account, update account
         infomation and insert a log into log table.
         """
-        updateCommand = """
-            UPDATE RenrenAccounts
-            SET is_using = 0,
-                is_valid = 0,
-                login_count = %s + login_count,
-                request_count = %s + request_count,
-                last_used_time = NOW(),
-                become_invalid_time = NOW(),
-                error_code = %s,
-                error_info = %s
-            WHERE username = %s AND password = %s;
-        """
-        insertCommand = """
-            INSERT INTO RenrenAccountsLog (
-                username, password, event, is_login, request_count) VALUES(
-                %s, %s, %s, %s, %s);
-        """
-        loginCount = 1 if account.isLogin else 0
-        if not errorInfo:
-            if errorCode == RenrenAccountErrorCode.ERROR_WHEN_LOGIN:
-                errorInfo = "Get error when login."
-            elif errorCode == RenrenAccountErrorCode.ERROR_WHEN_REQUEST: 
-                errorInfo = "Get error when making request."
-            else:
-                errorInfo = "Unknown error."
+        RenrenAccountPool.acquireLock()
         try:
+            updateCommand = """
+                UPDATE RenrenAccounts
+                SET is_using = 0,
+                    is_valid = 0,
+                    login_count = %s + login_count,
+                    request_count = %s + request_count,
+                    last_used_time = NOW(),
+                    become_invalid_time = NOW(),
+                    error_code = %s,
+                    error_info = %s
+                WHERE username = %s AND password = %s;
+            """
+            insertCommand = """
+                INSERT INTO RenrenAccountsLog (
+                    username, password, event, is_login, request_count) VALUES(
+                    %s, %s, %s, %s, %s);
+            """
+            loginCount = 1 if account.isLogin else 0
+            if not errorInfo:
+                if errorCode == RenrenAccountErrorCode.ERROR_WHEN_LOGIN:
+                    errorInfo = "Get error when login."
+                elif errorCode == RenrenAccountErrorCode.ERROR_WHEN_REQUEST: 
+                    errorInfo = "Get error when making request."
+                else:
+                    errorInfo = "Unknown error."
             self.cursor.execute(
                 updateCommand, [
                     loginCount,
@@ -267,29 +284,32 @@ class RenrenAccountPool:
                 "username: " + account.username + "  " +\
                 "password: " + account.password + "  " + str(e))
             self.mdbConnection.rollback()
+        finally:
+            RenrenAccountPool.releaseLock()
 
     def addAccount(self, username, password, comeFrom):
         """Add a new account to the pool."""
-        accountCommand = """
-            INSERT INTO RenrenAccounts (
-                username, password,
-                come_from,
-                is_using, is_valid,
-                last_used_time,
-                login_count, request_count
-            ) VALUES (
-                %s, %s, %s,
-                0, 1,
-                '1971-1-1',
-                0, 0
-            );
-        """
-        logCommand = """
-            INSERT INTO RenrenAccountsLog (
-                username, password, event
-            ) VALUES (%s, %s, %s);
-        """
+        RenrenAccountPool.acquireLock()
         try:
+            accountCommand = """
+                INSERT INTO RenrenAccounts (
+                    username, password,
+                    come_from,
+                    is_using, is_valid,
+                    last_used_time,
+                    login_count, request_count
+                ) VALUES (
+                    %s, %s, %s,
+                    0, 1,
+                    '1971-1-1',
+                    0, 0
+                );
+            """
+            logCommand = """
+                INSERT INTO RenrenAccountsLog (
+                    username, password, event
+                ) VALUES (%s, %s, %s);
+            """
             self.cursor.execute(
                 accountCommand, [
                     username,
@@ -309,4 +329,15 @@ class RenrenAccountPool:
                 "password: " + password + "  " + str(e))
             self.mdbConnection.rollback()
             success = False
+        finally:
+            RenrenAccountPool.releaseLock()
         return success
+
+    @staticmethod
+    def acquireLock():
+        RenrenAccountPool.LOCK.acquire()
+
+    @staticmethod
+    def releaseLock():
+        RenrenAccountPool.LOCK.release()
+

@@ -45,6 +45,9 @@ def test():
         crawler.crawl(id, 30)
     except CrawlerException, e:
         log.info("Crawler end, reason: " + str(e))
+        if e.errorCode == CrawlerErrorCode.DETECT_STOP_SIGNAL:
+            print "detect int signal"
+            return
     finally:
         print "finally"
         crawler.dispose()
