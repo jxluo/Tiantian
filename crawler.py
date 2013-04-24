@@ -91,6 +91,7 @@ class Crawler:
         self.agent = RenrenAgent(account.username, account.password)
         self.agent.login()
         self.account.isLogin = self.agent.isLogin
+        self.lastRequestTime = time.time()
         if not self.agent.isLogin:
             # Fail to login
             self.account.reportInvalidAccount(

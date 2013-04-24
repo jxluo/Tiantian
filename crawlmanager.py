@@ -30,16 +30,14 @@ def detectSignal(a, b):
 class CrawlThread(threading.Thread):
     """A single crawling thread."""
     threadId = 0
-    startNodeId = None
     accountLimit = 100
     dataBase = None
     renrenAccountPool = None
 
-    def __init__(self, tid, startNodeId, dataBase, pool, accountLimit):
+    def __init__(self, tid, dataBase, pool, accountLimit):
         threading.Thread.__init__(self)
         log.info("Create thread " + str(tid))
         self.threadId = tid
-        self.startNodeId = startNodeId
         self.dataBase = dataBase
         self.renrenAccountPool = pool
         self.accountLimit = accountLimit
@@ -49,7 +47,7 @@ class CrawlThread(threading.Thread):
         for i in range(0, self.accountLimit):
             account = self.renrenAccountPool.getAccount()
             try:
-                id = self.dataBase.getStartNode()
+                id, tableId = self.dataBase.getStartNode()
                 if not account or not id:
                     log.warning('Thread ' + str(self.threadId) +\
                         ': No account or start node!')
@@ -58,7 +56,9 @@ class CrawlThread(threading.Thread):
             except CrawlerException, e:
                 break
             finally:
-                if not account: account.dispose()
+                # These dispose may also be done in crawler.dispose()
+                if account: account.dispose()
+                if tableId: self.dataBase.releaseStartNode(tableId)
 
     def singleCrawl(self, account, startId):
         crawler = Crawler()
@@ -67,7 +67,7 @@ class CrawlThread(threading.Thread):
             crawler.crawl(startId, 100)
         except CrawlerException, e:
             log.info("Thread " + str(self.threadId) +\
-                "Crawler end with exception, reason: " + str(e))
+                " Crawler end with exception, reason: " + str(e))
             if e.errorCode == CrawlerErrorCode.DETECT_STOP_SIGNAL:
                 raise e
         finally:
@@ -76,17 +76,17 @@ class CrawlThread(threading.Thread):
 
 class CrawlManager:
 
-    threadNumber = 10
     accountLimit = 100
     dataBase = None
     renrenAccountPool = None
 
-    def startCrawling(self):
+    def startMultiThreadCrawling(self, threadNumber):
         self.dataBase = createProdDataBase()
+        self.dataBase.releaseAllStartNode()
         self.renrenAccountPool = createProdRenrenAccountPool()
 
         threads = []
-        for i in range(0, self.threadNumber):
+        for i in range(0, threadNumber):
             thread = CrawlThread(
                 i, self.dataBase, self.renrenAccountPool, self.accountLimit)
             threads.append(thread)
@@ -95,13 +95,22 @@ class CrawlManager:
         for thread in threads:
             thread.join()
         log.info("Main thread end....")
-        
+
+    def startSignleThreadCrawling(self):
+        self.dataBase = createProdDataBase()
+        self.dataBase.releaseAllStartNode()
+        self.renrenAccountPool = createProdRenrenAccountPool()
+        thread = CrawlThread(
+            0, self.dataBase, self.renrenAccountPool, self.accountLimit)
+        thread.run()
+
         
 def main():
     log.config(GC.LOG_FILE_DIR + 'CrawlManager', 'info', 'info')
     signal.signal(signal.SIGINT, detectSignal)
     manager = CrawlManager()
-    manager.startCrawling()
+    #manager.startMultiThreadCrawling(2)
+    manager.startSignleThreadCrawling()
 
 if __name__ == "__main__":
     main()

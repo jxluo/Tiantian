@@ -313,10 +313,14 @@ class DataBase:
         return sucess
 
     def getStartNode(self):
-        """Get one start node."""
+        """Get one start node.
+
+        Returns:
+            (tableId, id) the start node.
+        """
         ids = self.getStartNodes(1)
         if len(ids) < 1:
-            return None
+            return None, None
         else:
             return ids[0]
 
@@ -327,21 +331,68 @@ class DataBase:
             number: the number of nodes you would like to get.
 
         Returns:
-            (): A tuple that contains nodes.
+            ((tableId, id)): A tuple that contains nodes.
         """
         DataBase.acquireLock()
         try:
-            command =\
-                " SELECT id FROM StartList " +\
-                " ORDER BY last_modified ASC " +\
-                " LIMIT %s; "
-            self.cursor.execute(command, [number])
+            selectCommand = """
+                SELECT id, table_id FROM StartList
+                WHERE is_using = 0
+                ORDER BY last_modified ASC
+                LIMIT %s;
+            """
+            self.cursor.execute(selectCommand, [number])
             rows = self.cursor.fetchall()
-            allNodes = [row[0] for row in rows]
-            return allNodes
+
+            updateCommand = """
+                UPDATE StartList SET is_using = 1
+                WHERE table_id = %s;
+            """
+            for row in rows:
+                self.cursor.execute(updateCommand, [row[1]])
+            self.mdbConnection.commit()
+            return rows
+        except Exception, e:
+            log.warning("Get start node failed!" + str(e))
+            self.mdbConnection.rollback()
+            return ()
         finally:
             DataBase.releaseLock()
-    
+
+    def releaseStartNode(self, tableId):
+        """Release a startNode by a table id.
+
+        Args:
+            tableId: the id of the table row.
+        """
+        DataBase.acquireLock()
+        try:
+            command = """
+                UPDATE StartList SET is_using = 0 WHERE table_id = %s;
+            """
+            self.cursor.execute(command, [tableId])
+            self.mdbConnection.commit()
+        except Exception, e:
+            log.warning("Release start list node failed!" + str(e))
+            self.mdbConnection.rollback()
+        finally:
+            DataBase.releaseLock()
+
+    def releaseAllStartNode(self):
+        """Release all startNode."""
+        DataBase.acquireLock()
+        try:
+            command = """
+                UPDATE StartList SET is_using = 0;
+            """
+            self.cursor.execute(command)
+            self.mdbConnection.commit()
+        except Exception, e:
+            log.warning("Release all start list node failed!" + str(e))
+            self.mdbConnection.rollback()
+        finally:
+            DataBase.releaseLock()
+
     def replaceStartNode(self, originId, newId):
         """Replace a old node with new id."""
         DataBase.acquireLock()

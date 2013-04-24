@@ -223,26 +223,45 @@ def testStartList(db):
     db.insertIntoStartList(id2, time2)
     db.insertIntoStartList(id1, time1)
 
-    result = db.getStartNodes(2)
-    assert len(result) == 2 , "len = " + str(len(result))
-    assert result[0] == id1
-    assert result[1] == id2
+    result1 = db.getStartNodes(2)
+    assert len(result1) == 2 , "len = " + str(len(result))
+    assert result1[0][0] == id1
+    assert result1[1][0] == id2
 
-    result = db.getStartNodes(1)
-    assert len(result) == 1
-    assert result[0] == id1
-
+    # It's 2013 now.
     db.insertIntoStartList(id3)
-    assert len(db.getStartNodes(3)) == 3
-    db.deleteFromStartList(id2)
-    assert len(db.getStartNodes(3)) == 2
-    db.deleteFromStartList(id3)
-    assert len(db.getStartNodes(3)) == 1
+    result2 = db.getStartNode()
+    assert result2[1] != None
+    assert result2[0] == id3
 
-    db.replaceStartNode(id1, newId) 
-    assert len(db.getStartNodes(3)) == 1
-    assert db.getStartNodes(3)[0] == newId
+    result3 = db.getStartNode()
+    assert result3[0] == None
+    assert result3[1] == None
+    result4 = db.getStartNodes(2)
+    assert len(result4) == 0
     
+    db.releaseStartNode(result2[1])
+
+    id, tableId = db.getStartNode()
+    db.replaceStartNode(id, newId) 
+    db.releaseStartNode(tableId)
+    id, tableId = db.getStartNode()
+    assert id == newId
+    
+    db.releaseStartNode(result1[0][1])
+    db.releaseStartNode(result1[1][1])
+    db.releaseStartNode(tableId)
+    result5 = db.getStartNodes(5)
+    assert len(result5) == 3
+    db.releaseStartNode(result5[0][1])
+    db.releaseStartNode(result5[1][1])
+    db.releaseStartNode(result5[2][1])
+
+    db.deleteFromStartList(result5[0][0])
+    db.deleteFromStartList(result5[1][0])
+    result6 = db.getStartNodes(5)
+    assert len(result6) == 1
+
 
 def main():
     log.config(GC.LOG_FILE_DIR + 'database_test', 'debug', 'debug')
