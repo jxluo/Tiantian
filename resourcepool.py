@@ -71,8 +71,10 @@ class RenrenAccountLogEvent:
      USE, # Be used.
      FINISH_USE, # Finish used.
      BECOME_INVALID, # Become invalid.
-     DELETE # Delete from pool.
-    ) = range(0, 5)
+     DELETE, # Delete from pool.
+     SAVE_ACCOUNT_SUCCESS, # Save account success, become valid.
+     SAVE_ACCOUNT_FAIL # Save account fail, still invalid.
+    ) = range(0, 7)
 
 
 class RenrenAccountErrorCode:
@@ -332,6 +334,88 @@ class RenrenAccountPool:
         finally:
             RenrenAccountPool.releaseLock()
         return success
+
+    def saveAccount(self, username, password, successSave, time=None):
+        """Set a account is_valid to valid."""
+        RenrenAccountPool.acquireLock()
+        try:
+            accountCommandNoTime = """
+                UPDATE RenrenAccounts
+                SET is_using = 0,
+                    is_valid = 1,
+                    last_used_time = NOW()
+                WHERE username = %s AND password = %s;
+            """
+            accountCommandWithTime = """
+                UPDATE RenrenAccounts
+                SET is_using = 0,
+                    is_valid = 1,
+                    last_used_time = %s
+                WHERE username = %s AND password = %s;
+            """
+            logCommand = """
+                INSERT INTO RenrenAccountsLog (
+                    username, password, event
+                ) VALUES (%s, %s, %s);
+            """
+            if successSave:
+                if time:
+                    self.cursor.execute(
+                        accountCommandWithTime, [
+                            time,
+                            username,
+                            password]);
+                else:
+                    self.cursor.execute(
+                        accountCommandNoTime, [
+                            username,
+                            password]);
+
+            event = RenrenAccountLogEvent.SAVE_ACCOUNT_SUCCESS if successSave\
+                else RenrenAccountLogEvent.SAVE_ACCOUNT_FAIL
+            self.cursor.execute(
+                logCommand, [
+                    username,
+                    password,
+                    event]);
+            self.mdbConnection.commit()
+            success = True
+        except Exception, e:
+            log.warning(
+                "RenrenAccountPool: save account operation failed! " +\
+                "username: " + username + "  " +\
+                "password: " + password + "  " + str(e))
+            self.mdbConnection.rollback()
+            success = False
+        finally:
+            RenrenAccountPool.releaseLock()
+        return success
+
+    def onceSaveFail(self, username, password):
+        """Return whether a account has once been saved but fail."""
+        RenrenAccountPool.acquireLock()
+        try:
+            command = """
+                SELECT * FROM RenrenAccountsLog
+                WHERE username = %s AND password = %s AND event = %s;
+            """
+            self.cursor.execute(
+                command, [
+                    username,
+                    password,
+                    RenrenAccountLogEvent.SAVE_ACCOUNT_FAIL]);
+            rows = self.cursor.fetchall()
+            onceFail = len(rows) > 0
+        except Exception, e:
+            log.warning(
+                "RenrenAccountPool: once save fail failed! " +\
+                "username: " + username + "  " +\
+                "password: " + password + "  " + str(e))
+            self.mdbConnection.rollback()
+            onceFail = False
+        finally:
+            RenrenAccountPool.releaseLock()
+        return onceFail
 
     @staticmethod
     def acquireLock():

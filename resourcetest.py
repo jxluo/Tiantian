@@ -90,6 +90,9 @@ def test(pool):
     accounts[1].reportInvalidAccount(RenrenAccountErrorCode.ERROR_WHEN_LOGIN)
     accounts[2].finishUsing()
 
+    invalidAccount1 = accounts[0]
+    invalidAccount2 = accounts[1]
+
     accounts = pool.getAccounts(10)
     assert len(accounts) == 1
 
@@ -100,6 +103,33 @@ def test(pool):
 
     accounts = pool.getAccounts(10)
     assert len(accounts) == 0
+
+    # Test save account
+    pool.saveAccount(invalidAccount1.username, invalidAccount1.password, True,
+        '1971-1-1')
+    accounts = pool.getAccounts(10)
+    assert len(accounts) == 1
+    for account in accounts:
+        account.finishUsing()
+    
+    # Test save account
+    pool.saveAccount(invalidAccount2.username, invalidAccount2.password, False)
+    accounts = pool.getAccounts(10)
+    assert len(accounts) == 1
+    for account in accounts:
+        account.finishUsing()
+    
+    # Test save account
+    pool.saveAccount(invalidAccount2.username, invalidAccount2.password, True)
+    accounts = pool.getAccounts(10)
+    assert len(accounts) == 1
+    for account in accounts:
+        account.finishUsing()
+
+    assert pool.onceSaveFail(
+        invalidAccount1.username, invalidAccount1.password) == False
+    assert pool.onceSaveFail(
+        invalidAccount2.username, invalidAccount2.password) == True
 
 def main():
     log.config(GC.LOG_FILE_DIR + 'account_pool_test', 'debug', 'debug')
