@@ -82,13 +82,13 @@ class Crawler:
 
     expandingId = None
 
-    def init(self, account, dataBase):
+    def init(self, account, dataBase, proxy=None):
         """Initialize the crawler, set the agent and database."""
         self.account = account
         self.dataBase = dataBase
 
         self.detectStopSignal()
-        self.agent = RenrenAgent(account.username, account.password)
+        self.agent = RenrenAgent(account.username, account.password, proxy)
         self.agent.login()
         self.account.isLogin = self.agent.isLogin
         self.lastRequestTime = time.time()

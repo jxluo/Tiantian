@@ -11,11 +11,13 @@ from database import createProdDataBase
 import database
 
 from resourcepool import createProdRenrenAccountPool
+from proxypool import createProdProxyPool
 from resourcepool import RenrenAccountPool
 
 from crawler import Crawler
 from crawler import CrawlerException
 from crawler import CrawlerErrorCode
+from proxy import Proxy
 
 import threading
 
@@ -33,14 +35,16 @@ class CrawlThread(threading.Thread):
     accountLimit = 10
     dataBase = None
     renrenAccountPool = None
+    proxy = None
 
-    def __init__(self, tid, dataBase, pool, accountLimit):
+    def __init__(self, tid, dataBase, pool, accountLimit, proxy=None):
         threading.Thread.__init__(self)
         log.info("Create thread " + str(tid))
         self.threadId = tid
         self.dataBase = dataBase
         self.renrenAccountPool = pool
         self.accountLimit = accountLimit
+        self.proxy = proxy
 
     def run(self):
         log.info("Thread " + str(self.threadId) + ": run......")
@@ -64,7 +68,7 @@ class CrawlThread(threading.Thread):
     def singleCrawl(self, account, startId):
         crawler = Crawler()
         try:
-            crawler.init(account, self.dataBase)
+            crawler.init(account, self.dataBase, self.proxy)
             crawler.crawl(startId, 100)
         except CrawlerException, e:
             log.info("Thread " + str(self.threadId) +\
@@ -80,7 +84,7 @@ class CrawlThread(threading.Thread):
 
 class CrawlManager:
 
-    accountLimit = 10
+    accountLimit = 40
     dataBase = None
     renrenAccountPool = None
 
@@ -111,13 +115,37 @@ class CrawlManager:
         thread = CrawlThread(
             0, self.dataBase, self.renrenAccountPool, self.accountLimit)
         thread.run()
+    
+    def startMultiThreadCrawlingWithProxy(self, threadNumber):
+        self.dataBase = createProdDataBase()
+        self.dataBase.releaseAllStartNode()
+        self.renrenAccountPool = createProdRenrenAccountPool()
+        pool = createProdProxyPool()
+        proxies = pool.getProxies(threadNumber)
+
+        threads = []
+        for i in range(0, threadNumber):
+            thread = CrawlThread(
+                i, self.dataBase, self.renrenAccountPool, self.accountLimit,
+                proxies[i])
+            threads.append(thread)
+            thread.start()
+            time.sleep(1.5)
+
+        # Wait for a signal
+        signal.pause()
+
+        for thread in threads:
+            thread.join()
+        log.info("Main thread end....")
 
         
 def main():
     log.config(GC.LOG_FILE_DIR + 'CrawlManager', 'info', 'info')
     signal.signal(signal.SIGINT, detectSignal)
     manager = CrawlManager()
-    manager.startMultiThreadCrawling(10)
+    #manager.startMultiThreadCrawling(2)
+    manager.startMultiThreadCrawlingWithProxy(5)
     #manager.startSignleThreadCrawling()
 
 if __name__ == "__main__":

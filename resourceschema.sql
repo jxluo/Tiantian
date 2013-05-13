@@ -30,3 +30,21 @@ CREATE TABLE IF NOT EXISTS RenrenAccountsLog (
 
   PRIMARY KEY (log_id)
 );
+
+CREATE TABLE IF NOT EXISTS Proxies (
+  address CHAR(80) NOT NULL,
+  port CHAR(20) NOT NULL,
+  protocol CHAR(20) NOT NULL,
+
+  info CHAR(200),
+  source CHAR(200),
+
+  test_count INT NOT NULL DEFAULT 0,
+  success_count INT NOT NULL DEFAULT 0,
+  average_time INT NOT NULL DEFAULT 999999,
+
+  create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (address, port)
+);
+

@@ -68,15 +68,27 @@ class RenrenAgent:
 
     loginUrl = 'http://www.renren.com/PLogin.do'
     renrenUrl = 'http://www.renren.com/'
+    proxy = None
 
     TIME_OUT = 30 # In seconds
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, proxy=None):
         self.username = username
         self.password = password
+        self.proxy = proxy
         self.isLogin = False
         cookieProcessor = urllib2.HTTPCookieProcessor()
-        self.opener = urllib2.build_opener(cookieProcessor)
+        if proxy:
+            protocol = proxy.protocol
+            if not protocol:
+                # Default to HTTP protocol
+                protocol = 'HTTP'
+            proxyHandler = urllib2.ProxyHandler({
+                protocol: proxy.getProxyString()
+            })
+            self.opener = urllib2.build_opener(cookieProcessor, proxyHandler)
+        else:
+            self.opener = urllib2.build_opener(cookieProcessor)
 
     def login(self):
         loginData={
