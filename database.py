@@ -245,7 +245,7 @@ class DataBase:
             self.mdbConnection.commit()
             sucess = True
         except Exception, e:
-            log.warning("Add Record Failed! " + str(e))
+            log.warning("Add Record Failed! ("+ str(id) + ") " + str(e))
             self.mdbConnection.rollback()
             sucess = False
         finally:

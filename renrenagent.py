@@ -8,7 +8,7 @@ import bs4
 import log
 import globalconfig as GC
 import util
-
+import time
 
 
 class ErrorCode:
@@ -70,7 +70,7 @@ class RenrenAgent:
     renrenUrl = 'http://www.renren.com/'
     proxy = None
 
-    TIME_OUT = 30 # In seconds
+    TIME_OUT = 20 # In seconds
 
     def __init__(self, username, password, proxy=None):
         self.username = username
@@ -81,12 +81,13 @@ class RenrenAgent:
         if proxy:
             protocol = proxy.protocol
             if not protocol:
-                # Default to HTTP protocol
-                protocol = 'HTTP'
+                # Default to http protocol
+                protocol = 'http'
             proxyHandler = urllib2.ProxyHandler({
-                protocol: proxy.getProxyString()
+                protocol.lower(): proxy.getProxyString()
             })
             self.opener = urllib2.build_opener(cookieProcessor, proxyHandler)
+            log.info('Login with proxy -- ' + proxy.protocol + ' ' + proxy.getProxyString()) 
         else:
             self.opener = urllib2.build_opener(cookieProcessor)
 
@@ -106,7 +107,7 @@ class RenrenAgent:
             response = self.opener.open(req, timeout=self.TIME_OUT)
         except urllib2.URLError, e:
             #print 'Login error: ' + e.reason
-            log.error('Login error: ' + e.reason)
+            log.error('Login error: ' + str(e.reason))
             return ({}, ErrorCode.URL_ERROR)
 
         # Verify the login

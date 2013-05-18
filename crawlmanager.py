@@ -144,8 +144,8 @@ def main():
     log.config(GC.LOG_FILE_DIR + 'CrawlManager', 'info', 'info')
     signal.signal(signal.SIGINT, detectSignal)
     manager = CrawlManager()
-    #manager.startMultiThreadCrawling(2)
-    manager.startMultiThreadCrawlingWithProxy(5)
+    manager.startMultiThreadCrawling(5)
+    #manager.startMultiThreadCrawlingWithProxy(3)
     #manager.startSignleThreadCrawling()
 
 if __name__ == "__main__":

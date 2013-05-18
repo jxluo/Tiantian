@@ -152,7 +152,7 @@ def testProxyPool():
     proxy1 = Proxy()
     proxy1.addr = u'1.1.1.1'
     proxy1.port = u'1'
-    proxy1.protocol = u'HTTP'
+    proxy1.protocol = u'http'
     proxy1.info = u'1234'
     proxy1.source = u'3321' 
     proxy1.testCount = 5
@@ -162,7 +162,7 @@ def testProxyPool():
     proxy2 = Proxy()
     proxy2.addr = u'2.2.2.2'
     proxy2.port = u'2'
-    proxy2.protocol = u'SOCKET'
+    proxy2.protocol = u'http'
     proxy2.info = u'信息'
     proxy2.source = u'来源' 
     proxy2.testCount = 5
@@ -182,7 +182,7 @@ def testProxyPool():
     proxy4 = Proxy()
     proxy4.addr = u'4.4.4.4'
     proxy4.port = u'4'
-    proxy4.protocol = u'HTTP'
+    proxy4.protocol = u'http'
     proxy4.info = None
     proxy4.source = None 
 

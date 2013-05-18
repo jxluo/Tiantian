@@ -78,7 +78,7 @@ class ProxyPool:
             address = proxy.addr.encode('utf-8')
             port = proxy.port.encode('utf-8')
             protocol = proxy.protocol.encode('utf-8') if proxy.protocol\
-                else u'HTTP'
+                else u'http'
 
             info = proxy.info.encode('utf-8') if proxy.info else None
             source = proxy.source.encode('utf-8') if proxy.source else None
@@ -129,7 +129,7 @@ class ProxyPool:
         proxy = Proxy()
         proxy.addr = row[0].decode('utf-8')
         proxy.port = row[1].decode('utf-8')
-        proxy.protocol = row[2].decode('utf-8')
+        proxy.protocol = row[2].decode('utf-8').lower()
         
         proxy.info = row[3].decode('utf-8') if row[3] else None
         proxy.source = row[4].decode('utf-8') if row[4] else None
@@ -139,7 +139,7 @@ class ProxyPool:
         proxy.averageTime = row[7]
         return proxy
 
-    def getProxies(self, number):
+    def getProxies(self, number, protocol='http'):
         """Get some proxies from database."""
         ProxyPool.acquireLock()
         proxies = []
@@ -149,11 +149,12 @@ class ProxyPool:
                     info, source,
                     test_count, success_count, average_time
                 FROM Proxies
-                WHERE average_time < 20000
+                WHERE average_time < 20000 AND
+                    protocol = %s
                 ORDER BY average_time ASC
                 LIMIT %s;
             """
-            self.cursor.execute(command, [number])
+            self.cursor.execute(command, [protocol, number])
             rows = self.cursor.fetchall()
             for row in rows:
                 proxies.append(self.convertToProxy(row))

@@ -86,6 +86,28 @@ class ReadOnlyDataStore:
         Returns: [Profile] The profile list.
         """
         pass
+    
+    def getAllCreatedTime(self):
+        """Returns all the create_time in the data store.
+
+        Returns: [time] The profile list.
+        """
+        ReadOnlyDataStore.acquireLock()
+        times = []
+        try:
+            command = """
+                SELECT create_time
+                FROM Persons;
+                """
+            self.cursor.execute(command)
+            rows = self.cursor.fetchall()
+            for row in rows:
+                times.append(row[0])
+        except Exception, e:
+            log.warning("Get all profiles failed!" + str(e))
+        finally:
+            ReadOnlyDataStore.releaseLock()
+        return times
 
     def convertToProfile(self, row):
         """Convert a row of record to profile"""

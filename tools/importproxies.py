@@ -38,7 +38,6 @@ class PageParser:
         return proxies
         
 
-
 class CrawlingThread(threading.Thread):
     """A thread making HTTP request to proxy source page."""
     url = 'http://www.renren.com'
@@ -70,6 +69,20 @@ class ProxyImporter:
     
     allProxies = [] # All the proxies crawled.
     LOCK = threading.RLock() # Lock of allProxies
+    def showAllProxies(self, proxies):
+        for proxy in proxies:
+            log.info('>>>  ' + str(proxy.averageTime) + '    ' +\
+                str(proxy.successCount) + '/' + str(proxy.testCount) +\
+                '    ' + proxy.getAllString())
+    
+    def showHeadProxies(self, proxies, number):
+        for i in range(0, number):
+            if i >= len(proxies):
+                break
+            proxy = proxies[i]
+            log.info('>>>  ' + str(proxy.averageTime) + '    ' +\
+                str(proxy.successCount) + '/' + str(proxy.testCount) +\
+                '    ' + proxy.getAllString())
 
     def addProxy(self, proxy):
         self.LOCK.acquire()
@@ -87,7 +100,7 @@ class ProxyImporter:
         prefix = 'http://www.itmop.com/proxy/post/'
         parser = PageParser()
         threads = []
-        for i in range(1330, 1331 + 1):
+        for i in range(1000, 1331 + 1):
             url = prefix + str(i) + '.html'
             thread = CrawlingThread(url, parser, self)
             threads.append(thread)
@@ -104,7 +117,8 @@ class ProxyImporter:
     def removeDuplicate(self):
         proxyMap = {}
         for proxy in self.allProxies:
-            key = proxy.addr[0 : proxy.addr.rfind('.')]
+            #key = proxy.addr[0 : proxy.addr.rfind('.')]
+            key = proxy.addr + proxy.port
             if not proxyMap.get(key):
                 proxyMap[key] = proxy
 
@@ -128,7 +142,7 @@ class ProxyImporter:
             tester = ProxyTester(proxy)
             threads.append(tester)
 
-        pool = ThreadPool(40)
+        pool = ThreadPool(200)
         pool.start(threads)
         
         log.info( 'Test finish.  Total test time:  ' +\
@@ -155,6 +169,10 @@ class ProxyImporter:
         self.crawlAll()
         self.removeDuplicate()
         self.testAll()
+        proxies = self.proxiesToTest
+        proxies.sort(key=lambda x: x.averageTime)
+        #self.showAllProxies(proxies)
+        self.showHeadProxies(proxies, 200)
         #self.investigate()
         self.importAll()
 

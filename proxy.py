@@ -15,11 +15,11 @@ from threadpool import ThreadPool
 class ProxyTester(threading.Thread):
     """A thread making HTTP request to test the proxy."""
     proxy = None
-    url = 'http://www.baidu.com'
+    url = 'http://www.renren.com'
     totalTestNumber = 5
     acceptableFailTestNumber = 1
 
-    def __init__(self, proxy, url=None, total=5, fail=2):
+    def __init__(self, proxy, url=None, total=5, fail=1):
         threading.Thread.__init__(self)
         self.proxy = proxy
         if url:
@@ -32,6 +32,10 @@ class ProxyTester(threading.Thread):
         totalWaitingTime = 0
         successCount = 0
         failCount = 0
+
+        # Not support non http protocol for now.
+        if self.proxy.protocol != 'http':
+            return
 
         for i in range(0, self.totalTestNumber):
             success, waitingTime = self.makeRequest()
@@ -67,16 +71,16 @@ class ProxyTester(threading.Thread):
             protocol = self.proxy.protocol
             if not protocol:
                 # Default to HTTP protocol
-                protocol = 'HTTP'
+                protocol = 'http'
             proxy_handler = urllib2.ProxyHandler({
-                protocol: self.proxy.getProxyString()
+                protocol.lower(): self.proxy.getProxyString()
             })
             opener = urllib2.build_opener(proxy_handler)
-            response = opener.open(self.url, timeout=3)
+            response = opener.open(self.url, timeout=5)
             response.read()
             success = True
         except Exception, e:
-            log.info('Fail on proxy test:  ' + str(e) + ' ' +\
+            log.debug('Fail on proxy test:  ' + str(e) + ' ' +\
                 self.proxy.getAllString())
 
         return (success, (time.time() - startTime)*1000)
@@ -99,7 +103,6 @@ class Proxy:
     #   221.181.192.91:80@HTTP;江苏省无锡市 移动
     #   68 187.86.0.183 3129 HTTP 巴西 itmop.com 10-22 14:04 11.012 whois
     pat1 = re.compile(
-        '.*[\s]?' +\
         '(\d+\.\d+\.\d+\.\d+)' +\
         '[:\s]' +\
         '(\d+)' +\
@@ -116,7 +119,7 @@ class Proxy:
         if mat:
             self.addr = mat.group(1)
             self.port = mat.group(2)
-            self.protocol = mat.group(3)
+            self.protocol = mat.group(3).lower()
             self.info = mat.group(4)
             
     def getAllString(self):
