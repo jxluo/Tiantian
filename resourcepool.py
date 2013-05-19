@@ -27,7 +27,7 @@ def createTestRenrenAccountPool():
 
 class RenrenAccount:
     """A class represent a renren account.
-Attributes:
+    Attributes:
         username: {string} the username.
         password: {string} the password.
         isLogin: {boolean} is the account login.

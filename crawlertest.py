@@ -39,8 +39,10 @@ def test():
     global crawler
     
     try:
-        crawler = Crawler()
-        crawler.init(account, db)
+        crawler = Crawler(db)
+        agent = RenrenAgent(account)
+        agent.login()
+        crawler.setAgent(agent)
         id = "322601086"
         crawler.crawl(id, 30)
     except CrawlerException, e:
@@ -50,7 +52,7 @@ def test():
             return
     finally:
         print "finally"
-        crawler.dispose()
+        account.dispose()
 
 def detectSignal(a, b):
     print "Signal detect"

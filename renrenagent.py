@@ -68,16 +68,21 @@ class RenrenAgent:
 
     loginUrl = 'http://www.renren.com/PLogin.do'
     renrenUrl = 'http://www.renren.com/'
-    proxy = None
+    
+    proxy = None # The http proxy
+    account = None # The renren account releated.
 
-    TIME_OUT = 20 # In seconds
+    TIME_OUT = 20 # Time limit for request in seconds
+    REQUEST_LIMIT = 80 # Request limit for account.
 
-    def __init__(self, username, password, proxy=None):
-        self.username = username
-        self.password = password
+    def __init__(self, account, proxy=None):
+        self.username = account.username
+        self.password = account.password
+        self.account = account
         self.proxy = proxy
         self.isLogin = False
         cookieProcessor = urllib2.HTTPCookieProcessor()
+
         if proxy:
             protocol = proxy.protocol
             if not protocol:
@@ -87,11 +92,11 @@ class RenrenAgent:
                 protocol.lower(): proxy.getProxyString()
             })
             self.opener = urllib2.build_opener(cookieProcessor, proxyHandler)
-            log.info('Login with proxy -- ' + proxy.protocol + ' ' + proxy.getProxyString()) 
         else:
             self.opener = urllib2.build_opener(cookieProcessor)
 
     def login(self):
+        assert self.account.isLogin == False
         loginData={
                 'email': self.username,
                 'password': self.password,
@@ -103,11 +108,18 @@ class RenrenAgent:
         }
         postData = urlencode(loginData)
         req = urllib2.Request(self.loginUrl, postData)
+        if self.proxy:
+            log.info('Try to login with proxy: (%s, %s) %s %s ====' %\
+                (self.username, self.password, self.proxy.protocol,
+                    self.proxy.getProxyString())) 
+        else:
+            log.info('Try to login: (%s, %s) ====' %\
+                (self.username, self.password))
         try:
             response = self.opener.open(req, timeout=self.TIME_OUT)
         except urllib2.URLError, e:
             #print 'Login error: ' + e.reason
-            log.error('Login error: ' + str(e.reason))
+            log.warning('Login fail when requesting: ' + str(e.reason))
             return ({}, ErrorCode.URL_ERROR)
 
         # Verify the login
@@ -119,7 +131,7 @@ class RenrenAgent:
         except Exception, e:
             # TODO: use e.reason or other appropriate exceition if possible
             # The another possible exception is stock.timeout: time out
-            log.error('Open guide error: ' + str(e))
+            log.warning('Login fail when opening guide error: ' + str(e))
             return ({}, ErrorCode.URL_ERROR)
         document = BeautifulSoup(html)
         info = {}
@@ -129,14 +141,20 @@ class RenrenAgent:
             info['name'] = link.string
             info['href'] = link['href']
         else:
-            log.error('Unknown login template')
+            log.warning('Login fail with unknown login template')
             util.saveErrorPage(html, self.username + 'login')
             error = 1
             return ({}, ErrorCode.UNKNOWN_PAGE)
 
         self.isLogin = True
+        self.account.isLogin = True
         log.info('Success login, name: ' + info['name'])
         return (info, ErrorCode.OK)
+
+    def isReachRequestLimit(self):
+        if self.account and self.account.requestCount >= self.REQUEST_LIMIT:
+            return True
+        return False
 
     def getProfile(self, id, saveAllPage = False):
         """Get profile of given user id, if the saveAllPage is true, this
@@ -157,6 +175,8 @@ class RenrenAgent:
             log.warning('Get profile url error: ' + str(e) +\
                         '. Profile url: ' + url)
             return (None, ErrorCode.URL_ERROR)
+        finally:
+            self.account.requestCount += 1
 
         if re.match(r'.*page.renren.com.*', url):
             # It may be not a personal profile page

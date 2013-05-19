@@ -30,14 +30,20 @@ class CrawlerErrorCode:
     """Enum of error code."""
     (OK,
      DETECT_STOP_SIGNAL, # Detect a stop signal.
+
+     # Start node's bad.
      GET_EXPANDING_NODE_FAILED, # Failed to get a node to expand.
      EXPAND_EXPANDED_NODE, # Try to expand a expanded node.
      NO_NODE_TO_EXPAND, # No available node for next expand.
-     LOGIN_FAILED, # Login to renren.com failed.
+
+     # Network's bad
      REQUEST_FAILED, # Request to renren.com failed.
+     
+     # Need to switch account.
      REACH_REQUEST_LIMIT, # Reach request limit for current account.
+
      UNKNOWN 
-     ) = range(0, 9)
+     ) = range(0, 8)
 
 
 class Crawler:
@@ -65,7 +71,6 @@ class Crawler:
         expandingId: {string} the id that is expanding.
     """
     agent = None # The renren agent.
-    account = None # The renren account.
     dataBase = None # The database.
     lastRequestTime = None
 
@@ -73,32 +78,22 @@ class Crawler:
 
     # Static Attribute
     MIN_REQ_INTERVAL = 1 # Default to 1 second.
-    REQUEST_LIMIT = 80 # Request limit for account.
-    RETRY_LIMIT = 2 # Limit for retry request.
-    FAILED_REQUEST_LIMIT = 4 # Failed request limit.
+    RETRY_LIMIT = 1 # Limit for retry request.
+    FAILED_REQUEST_LIMIT = 5 # Failed request limit.
 
     STOP_SIGNAL = False
     SIGNAL_LOCK = threading.RLock()
 
     expandingId = None
 
-    def init(self, account, dataBase, proxy=None):
-        """Initialize the crawler, set the agent and database."""
-        self.account = account
+    def __init__(self, dataBase):
+        """Initialize the crawler, set the database. """
         self.dataBase = dataBase
 
-        self.detectStopSignal()
-        self.agent = RenrenAgent(account.username, account.password, proxy)
-        self.agent.login()
-        self.account.isLogin = self.agent.isLogin
-        self.lastRequestTime = time.time()
-        if not self.agent.isLogin:
-            # Fail to login
-            self.account.reportInvalidAccount(
-                RenrenAccountErrorCode.ERROR_WHEN_LOGIN)
-            raise CrawlerException(
-                "Login to renren.com failed!",
-                CrawlerErrorCode.LOGIN_FAILED)
+    def setAgent(self, agent):
+        """Initialize the crawler, set the agent and database."""
+        self.agent = agent
+        assert agent.isLogin
 
     def crawl(self, id, opt_number=None):
         """Crawls from renren.com.
@@ -236,7 +231,6 @@ class Crawler:
             # necessary.
             self.detectStopSignal()
             userInfo, error = self.agent.getProfile(id)
-            self.account.requestCount += 1
             self.lastRequestTime = time.time()
 
             if not error:
@@ -249,17 +243,16 @@ class Crawler:
             # a exception.
             self.failedRequestCount += 1
             if self.failedRequestCount >= self.FAILED_REQUEST_LIMIT:
-                self.account.reportInvalidAccount(
-                    RenrenAccountErrorCode.ERROR_WHEN_REQUEST)
                 raise CrawlerException(
                     "HTTP request failed.",
                     CrawlerErrorCode.REQUEST_FAILED)
             return None
+        else:
+            # If no error, clear the failedRequest.
+            self.failedRequestCount = 0
 
         node = self.dataBase.addRecord(id, userInfo, self.expandingId)
-        if self.account.requestCount >= self.REQUEST_LIMIT:
-            # Reach request limit
-            self.account.finishUsing()
+        if self.agent.isReachRequestLimit():
             raise CrawlerException(
                 "Reach request limit for current account.",
                 CrawlerErrorCode.REACH_REQUEST_LIMIT)
@@ -307,7 +300,3 @@ class Crawler:
         if signal:
             raise CrawlerException(
                 "Detect stop signal!", CrawlerErrorCode.DETECT_STOP_SIGNAL)
-
-    def dispose(self):
-        """Dispose the crawler"""
-        self.account.dispose()
