@@ -11,7 +11,7 @@ import database
 import time
 import threading
 import log
-
+import util
 
 class CrawlerException(Exception):
     """Crawler exception class.
@@ -160,12 +160,14 @@ class Crawler:
                         "Failed to get expanding node's user profile!",
                         CrawlerErrorCode.GET_EXPANDING_NODE_FAILED)
                 connection = node.connection
-            elif status == database.Status.unexpanded:
+            elif status == database.Status.unexpanded or\
+                status == database.Status.expanded:
                 connection = self.dataBase.getConnection(id)
-            elif status == database.Status.expanded:
-                raise CrawlerException(
-                    "Try to expand expanded node.",
-                    CrawlerErrorCode.EXPAND_EXPANDED_NODE)
+            # TODO: Bring it back later.
+            #elif status == database.Status.expanded:
+            #    raise CrawlerException(
+            #        "Try to expand expanded node.",
+            #        CrawlerErrorCode.EXPAND_EXPANDED_NODE)
             else:
                 raise CrawlerException("WTF??", CrawlerErrorCode.UNKNOWN)
         else:
@@ -192,18 +194,24 @@ class Crawler:
                 CrawlerErrorCode.NO_NODE_TO_EXPAND)
 
         # Calculate the score.
-        results = [(self.calculateScore(node), node) \
+        scores = [self.calculateScore(node) \
             for node in connectedUnexpandedNodes]
 
-        # Pick highest one and return
-        highestScore = results[0][0]
-        highestNode = results[0][1]
-        for result in results:
-            if result[0] > highestScore:
-                highestScore = result[0]
-                highestNode = result[1]
-            
-        return highestNode    
+        # Random pick one base on the score.
+        weights = [x*x*x for x in scores]
+        index = util.weightPickInt(weights)
+
+        nextToExpend = connectedUnexpandedNodes[index]
+
+        if self.dataBase.needMoreStartNode() and util.randomTrue(1.0/60):
+            del connectedUnexpandedNodes[index]
+            del weights[index]
+            if (len(connectedUnexpandedNodes) > 0):
+                index = util.weightPickInt(weights)
+                newStartNode = connectedUnexpandedNodes[index]
+                self.dataBase.insertIntoStartList(newStartNode.id)
+
+        return nextToExpend
        
     def makeRequsetAndSave(self, id):
         """Make http request to get a user node and save in database.

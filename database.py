@@ -76,6 +76,7 @@ class DataBase:
     """
 
     LOCK = threading.RLock()
+    MIN_START_NODE_COUNT = 50
 
     def init(self, host, username, password, database):
         """Initialize the mysql connection.
@@ -377,6 +378,25 @@ class DataBase:
             self.mdbConnection.rollback()
         finally:
             DataBase.releaseLock()
+
+    def needMoreStartNode(self):
+        """Return whether we need more start nodes."""
+        DataBase.acquireLock()
+        try:
+            command = """
+                SELECT COUNT(*) FROM StartList;
+            """
+            self.cursor.execute(command)
+            rows = self.cursor.fetchall()
+            count = rows[0][0]
+            if count < self.MIN_START_NODE_COUNT:
+                return True
+        except Exception, e:
+            log.warning("Get start node count fail!" + str(e))
+            self.mdbConnection.rollback()
+        finally:
+            DataBase.releaseLock()
+        return False
 
     def releaseAllStartNode(self):
         """Release all startNode."""

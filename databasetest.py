@@ -223,6 +223,11 @@ def testStartList(db):
     db.insertIntoStartList(id2, time2)
     db.insertIntoStartList(id1, time1)
 
+    db.MIN_START_NODE_COUNT = 2
+    assert not db.needMoreStartNode()
+    db.MIN_START_NODE_COUNT = 3
+    assert db.needMoreStartNode()
+
     result1 = db.getStartNodes(2)
     assert len(result1) == 2 , "len = " + str(len(result))
     assert result1[0][0] == id1

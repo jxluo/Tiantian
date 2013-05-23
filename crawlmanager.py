@@ -41,7 +41,7 @@ class CrawlThread(threading.Thread):
 
     accountUsed = 0
     # limit 
-    ACCOUNTS_LIMIT = 30
+    ACCOUNTS_LIMIT = 10
     FAIL_LOGIN_ACCOUNT_LIMIT = 5
 
     THREAD_ID_COUNT = 0
@@ -76,6 +76,9 @@ class CrawlThread(threading.Thread):
                 break
             self.accountUsed += 1
             account = pool.getAccount()
+            if not account: 
+                # No avaliable account in the database.
+                break
             agent = RenrenAgent(account, self.proxy)
             agent.login()
             time.sleep(1)
@@ -92,7 +95,9 @@ class CrawlThread(threading.Thread):
             return agent, account
         else:
             for account in loginFailAccounts:
-                account.finishUsing()
+                #account.finishUsing()
+                account.reportInvalidAccount(RenrenAccountErrorCode.ERROR_WHEN_LOGIN)
+            # TODO: Find a better way.
             return None, None
 
     def run(self):
@@ -116,6 +121,8 @@ class CrawlThread(threading.Thread):
                         break
                 if not startNode:
                     startNode, startNodeRowId = dataBase.getStartNode()
+                    log.info('Thread %s, startnode: %s, %s' %\
+                        (self.threadId, startNode, startNodeRowId))
                     if not startNode or not startNodeRowId:
                         # No avaliable start node, exit crawling.
                         log.error(
@@ -139,18 +146,32 @@ class CrawlThread(threading.Thread):
                         e.errorCode == CrawlerErrorCode.EXPAND_EXPANDED_NODE or\
                         e.errorCode == CrawlerErrorCode.NO_NODE_TO_EXPAND:
                         # Start node's bad.
+                        log.warning('Thread %s, bad start node: %s, %s' %\
+                            (self.threadId, startNode, startNodeRowId))
                         dataBase.deleteFromStartList(startNode)
                         startNode = startNodeRowId = None
                     if e.errorCode == CrawlerErrorCode.REQUEST_FAILED:
                         # Still start node's bad.
                         # TODO: Implement invalid usernode test support in
                         # database to change it.
+                        log.warning('Thread %s, bad start node: %s, %s' %\
+                            (self.threadId, startNode, startNodeRowId))
                         dataBase.deleteFromStartList(startNode)
                         startNode = startNodeRowId = None
                     if e.errorCode == CrawlerErrorCode.REACH_REQUEST_LIMIT:
                         # Use a new accout
                         account.finishUsing()
                         account = agent = None
+                finally:
+                    # The start node change every time crawler.epand() called.
+                    # So the start node can not be reused when exception happen.
+                    # We need to release it and use a new one.
+                    if startNodeRowId:
+                        dataBase.releaseStartNode(startNodeRowId)
+                        startNode = startNodeRowId = None
+        except Exception, e:
+            log.error('Thread %s gets exception, exit crawling: %s' %\
+                (self.threadId, str(e)))
         finally:
             # Release resource.
             if account:
@@ -164,7 +185,7 @@ class MainCrawlThread(threading.Thread):
     dataBase = None
     renrenAccountPool = None
 
-    crawlRound = 25
+    crawlRound = 30
 
     def __init__(self):
         threading.Thread.__init__(self)

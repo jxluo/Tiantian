@@ -2,7 +2,56 @@
 #-*-coding:utf-8 -*-
 import globalconfig as GC
 import log
+import random
 
+def weightPickInt(weights):
+    """Random pick a number, the posibility is base on the weights.
+    Arguments:
+        weights: a list of weight, each of the element represent the weight
+          of the index number. weight should be a integer.
+    Reutrns:
+        number: range from 0 to len(weights)-1
+    """
+    sum = 0
+    for weight in weights:
+        sum += weight
+    result = random.randint(0, sum - 1)
+    for i in range(0, len(weights)):
+        weight = weights[i]
+        if result < weight:
+            return i
+        else:
+            result -= weight
+    raise Exception('Shit happen')
+
+def weightPickIntTest():
+    testRound = 100000
+    weights = [300, 200, 100]
+    result = [0, 0, 0]
+    for i in range(0, testRound):
+        result[weightPickInt(weights)] += 1
+    for i in range(0, 3):
+        print str(i) + ': ' + str(float(result[i])/testRound*600)
+
+#weightPickIntTest()
+
+def randomTrue(p):
+    return random.random() < p
+
+def randomTrueTest():
+    testRound = 1000000
+    t = 0
+    f = 0
+    p = 1.0/1000
+    for i in range(0, testRound):
+        if randomTrue(p): t += 1
+        else: f += 1
+    print 'True:  ' + str(float(t)/testRound)
+    print 'False:  ' + str(float(f)/testRound)
+
+#randomTrueTest()
+
+    
 
 def saveTestPage(html, name):
   path = GC.TEST_PAGE_PATH + str(name) + '.html'
