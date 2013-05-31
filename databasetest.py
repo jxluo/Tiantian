@@ -229,6 +229,8 @@ def testStartList(db):
     assert db.needMoreStartNode()
 
     result1 = db.getStartNodes(2)
+    db.MIN_START_NODE_COUNT = 2
+    assert db.needMoreStartNode()
     assert len(result1) == 2 , "len = " + str(len(result))
     assert result1[0][0] == id1
     assert result1[1][0] == id2

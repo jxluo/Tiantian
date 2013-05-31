@@ -187,8 +187,10 @@ class Crawler:
                 node = UserNode(id, status, profile)
                 connectedUnexpandedNodes.append(node)
 
+        # Set node status to expanded.
         # Raise exception
         if not len(connectedUnexpandedNodes):
+            self.dataBase.setStatus(id, database.Status.expanded)
             raise CrawlerException(
                 "There is no availabel node to expand.",
                 CrawlerErrorCode.NO_NODE_TO_EXPAND)
@@ -203,7 +205,8 @@ class Crawler:
 
         nextToExpend = connectedUnexpandedNodes[index]
 
-        if self.dataBase.needMoreStartNode() and util.randomTrue(1.0/60):
+        #if self.dataBase.needMoreStartNode() and util.randomTrue(1.0/60):
+        if self.dataBase.needMoreStartNode() and util.randomTrue(1.0/10):
             del connectedUnexpandedNodes[index]
             del weights[index]
             if (len(connectedUnexpandedNodes) > 0):

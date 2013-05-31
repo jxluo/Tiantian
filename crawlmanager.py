@@ -95,9 +95,8 @@ class CrawlThread(threading.Thread):
             return agent, account
         else:
             for account in loginFailAccounts:
-                #account.finishUsing()
-                account.reportInvalidAccount(RenrenAccountErrorCode.ERROR_WHEN_LOGIN)
-            # TODO: Find a better way.
+                account.finishUsing()
+                #account.reportInvalidAccount(RenrenAccountErrorCode.ERROR_WHEN_LOGIN)
             return None, None
 
     def run(self):
@@ -268,6 +267,9 @@ class CrawlManager:
 def main():
     log.config(GC.LOG_FILE_DIR + 'CrawlManager', 'info', 'info')
     signal.signal(signal.SIGINT, detectSignal)
+    time.sleep(10)
+    print 'sleep 10 seconds'
+    time.sleep(60*90)
     manager = CrawlManager()
     manager.start()
 

@@ -384,7 +384,7 @@ class DataBase:
         DataBase.acquireLock()
         try:
             command = """
-                SELECT COUNT(*) FROM StartList;
+                SELECT COUNT(*) FROM StartList WHERE is_using = FALSE;
             """
             self.cursor.execute(command)
             rows = self.cursor.fetchall()
