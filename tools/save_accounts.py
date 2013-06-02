@@ -3,12 +3,15 @@
 
 import sys
 sys.path.append('..')
-import log
+
+from jx import log
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from resource.renrenaccountpool import createProdRenrenAccountPool
+from crawl.renrenagent import RenrenAgent
+
 import time
-import globalconfig as GC
-import confidential as CFD
-from resourcepool import createProdRenrenAccountPool
-from renrenagent import RenrenAgent
+
 
 def saveInUsingAccounts(pool):
     getAllUsingAccountsCommand = """

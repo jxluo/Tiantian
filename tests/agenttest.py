@@ -1,11 +1,13 @@
 #!/usr/bin/python
 #-*-coding:utf-8 -*-
-from renrenagent import RenrenAgent
-from renrenagent import ErrorCode
+
+from jx import log
+from utils import globalconfig as GC
+from utils import util
+from crawl.renrenagent import RenrenAgent
+from crawl.renrenagent import ErrorCode
+
 import time
-import log
-import globalconfig as GC
-import util
 import sys
 import os
 

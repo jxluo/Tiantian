@@ -4,20 +4,19 @@
 import sys
 sys.path.append('..')
 
-import log
-import globalconfig as GC
-import confidential as CFD
+from jx import log
+from jx.threadpool import ThreadPool
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from resource.proxypool import ProxyPool
+from resource.proxypool import createProdProxyPool
+from resource.proxy import Proxy
+from resource.proxy import ProxyTester
+
 import time
 import threading
 import urllib2
-
 from bs4 import BeautifulSoup
-from proxypool import ProxyPool
-from proxypool import createProdProxyPool
-from proxy import Proxy
-from proxy import ProxyTester
-
-from threadpool import ThreadPool
 
 
 class PageParser:

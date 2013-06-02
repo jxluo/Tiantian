@@ -4,18 +4,19 @@
 import sys
 sys.path.append('..')
 
-import log
-import globalconfig as GC
-import confidential as CFD
-from resourcepool import RenrenAccountPool
-from resourcepool import RenrenAccount
-from resourcepool import createTestRenrenAccountPool
-from resourcepool import createProdRenrenAccountPool
+from jx import log
+from jx.threadpool import ThreadPool
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from utils import router
+from resource.renrenaccount import RenrenAccount
+from resource.renrenaccountpool import RenrenAccountPool
+from resource.renrenaccountpool import createTestRenrenAccountPool
+from resource.renrenaccountpool import createProdRenrenAccountPool
+from crawl.renrenagent import RenrenAgent
+
 import time
-from renrenagent import RenrenAgent
-from threadpool import ThreadPool
 import threading
-import router
 
 importSuccessCount = 0
 importFailCount = 0
@@ -123,7 +124,7 @@ def importFromFile(fname):
             accounts.append(account)
 
     accountNumInOneRound = 10
-    failFile = open('verify_fail', 'w')
+    failFile = open('tools/data/verify_fail', 'w')
     callback = VerifyCallback(pool, fileName, failFile)
     while accounts:
         threadPool = ThreadPool(5)
@@ -156,10 +157,10 @@ def importFromFile(fname):
     log.info('Fail imported number: %s' % importFailCount)
 
 def main():
-    #importFromFile('accounts_for_test')
+    importFromFile('tools/data/accounts_for_test')
     #importFromFile('accounts_from_taobao_yongji')
     #importFromFile('accounts_from_taobao_wanglihong')
-    importFromFile('accounts_from_taobao_wanglihong2')
+    #importFromFile('accounts_from_taobao_wanglihong2')
 
 if __name__ == "__main__":
   main()

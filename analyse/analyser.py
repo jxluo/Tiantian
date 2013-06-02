@@ -1,14 +1,14 @@
-
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from util import isHanChar
-import log
-import confidential as CFD
-import globalconfig as GC
-from database import Profile
-from database import Gender
-from readonlydatastore import createProdReadOnlyDataStore
-from readonlydatastore import ReadOnlyDataStore
+
+from jx import log
+from utils.util import isHanChar
+from utils import confidential as CFD
+from utils import globalconfig as GC
+from data.database import Profile
+from data.database import Gender
+from data.readonlydatastore import createProdReadOnlyDataStore
+from data.readonlydatastore import ReadOnlyDataStore
 
 
 class MapValue:

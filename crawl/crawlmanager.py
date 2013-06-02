@@ -1,28 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import log
-import globalconfig as GC
+from jx import log
+from utils import globalconfig as GC
+from utils import router
+from data.database import createProdDataBase
+from resource.renrenaccount import RenrenAccountErrorCode
+from resource.renrenaccountpool import createProdRenrenAccountPool
+from resource.renrenaccountpool import RenrenAccountPool
+from resource.proxypool import createProdProxyPool
+from resource.proxy import Proxy
+from crawl.crawler import Crawler
+from crawl.crawler import CrawlerException
+from crawl.crawler import CrawlerErrorCode
+from crawl.renrenagent import RenrenAgent
+
 import time
 import threading
 import signal
-
-from database import createProdDataBase
-import database
-
-from resourcepool import createProdRenrenAccountPool
-from resourcepool import RenrenAccountErrorCode
-from proxypool import createProdProxyPool
-from resourcepool import RenrenAccountPool
-
-from crawler import Crawler
-from crawler import CrawlerException
-from crawler import CrawlerErrorCode
-from proxy import Proxy
-from renrenagent import RenrenAgent
-
-import threading
-import router
 
 currentCrawler = None
 stopSignal = False
@@ -269,7 +264,7 @@ def main():
     signal.signal(signal.SIGINT, detectSignal)
     time.sleep(10)
     print 'sleep 10 seconds'
-    time.sleep(60*90)
+    time.sleep(60*60*3)
     manager = CrawlManager()
     manager.start()
 

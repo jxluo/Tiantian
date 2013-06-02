@@ -1,7 +1,9 @@
 #!/usr/bin/python
 #-*-coding:utf-8 -*-
-import globalconfig as GC
-import log
+
+from utils import globalconfig as GC
+from jx import log
+
 import random
 
 def weightPickInt(weights):

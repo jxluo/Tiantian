@@ -37,8 +37,23 @@ nosetests.xml
 # swp for vim
 *.swp
 
-# Log file dir
+# Log file directory
 log/
 
+# Temp file directory
+tmp/
+
+# Lab directory
+lab/
+
 # confidential file
-/confidential.py
+/utils/confidential.py
+
+# data file in tools
+/tools/data
+
+
+
+
+
+

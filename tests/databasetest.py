@@ -1,15 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import log
-import globalconfig as GC
-import confidential as CFD
-from database import Status
-from database import Profile
-from database import Connection
-from database import DataBase
-from renrenagent import UserInfo
-
+from jx import log
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from data.database import Status
+from data.database import Profile
+from data.database import Connection
+from data.database import DataBase
+from crawl.renrenagent import UserInfo
 
 
 def assertUserInfoProfile(userInfo, profile):
@@ -56,7 +55,7 @@ def createConnection():
     return db
 
 def createTables(db):
-    with open('schema.sql') as script:
+    with open('schema/data.sql') as script:
         lines = script.readlines()
         command = ''
         for i in range(0, len(lines)):

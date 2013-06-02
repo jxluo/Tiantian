@@ -1,14 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import globalconfig as GC
-import confidential as CFD
+from jx import log
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from utils import util
+from data.database import Profile
+from data.database import Gender
+
 import MySQLdb as mdb
-import log
 import threading
-import util
-from database import Profile
-from database import Gender
 
 def createProdReadOnlyDataStore():
     ds = ReadOnlyDataStore()

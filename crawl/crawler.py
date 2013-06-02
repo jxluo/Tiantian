@@ -1,17 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from renrenagent import UserInfo
-from renrenagent import RenrenAgent
-from database import UserNode
-from database import DataBase
-from resourcepool import RenrenAccount
-from resourcepool import RenrenAccountErrorCode
-import database
+from jx import log
+from utils import util
+from crawl.renrenagent import UserInfo
+from crawl.renrenagent import RenrenAgent
+from data.database import UserNode
+from data.database import DataBase
+from data import database
+from resource.renrenaccount import RenrenAccount
+from resource.renrenaccount import RenrenAccountErrorCode
+
 import time
 import threading
-import log
-import util
 
 class CrawlerException(Exception):
     """Crawler exception class.

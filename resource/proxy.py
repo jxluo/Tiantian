@@ -1,15 +1,15 @@
 #!/usr/bin/python
 #-*-coding:utf-8 -*-
 
+from jx import log
+from jx.threadpool import ThreadPool
+
 import bs4
 import re
 import threading
 import urllib2
 import time
-import log
-
 from bs4 import BeautifulSoup
-from threadpool import ThreadPool
 
 
 class ProxyTester(threading.Thread):

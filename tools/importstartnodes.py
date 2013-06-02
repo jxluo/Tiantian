@@ -4,15 +4,15 @@
 import sys
 sys.path.append('..')
 
-import log
-import globalconfig as GC
-import confidential as CFD
-import database
+from jx import log
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from data import database
 
 
 def main():
     log.config(GC.LOG_FILE_DIR + 'import_start_nodes', 'info', 'info')
-    fileName = "start_nodes"
+    fileName = "tools/data/start_nodes"
     importCount = 0
     failCount = 0
     dataBase = database.createProdDataBase()

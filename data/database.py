@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import confidential as CFD
-import renrenagent
+from utils import confidential as CFD
+from crawl import renrenagent
+from jx import log
+
 import MySQLdb as mdb
-import log
 import threading
 
 def createTestDataBase():

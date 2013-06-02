@@ -1,27 +1,20 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import log
-import globalconfig as GC
-import confidential as CFD
-from resourcepool import RenrenAccount
-from resourcepool import RenrenAccountLogEvent
-from resourcepool import RenrenAccountErrorCode
-from resourcepool import RenrenAccountPool
+from jx import log
+from utils import globalconfig as GC
+from utils import confidential as CFD
+from resource.renrenaccount import RenrenAccount
+from resource.renrenaccount import RenrenAccountLogEvent
+from resource.renrenaccount import RenrenAccountErrorCode
+from resource.renrenaccountpool import RenrenAccountPool
+from resource.renrenaccountpool import createTestRenrenAccountPool
+from resource.proxy import Proxy
+from resource.proxypool import createTestProxyPool
 
-from proxy import Proxy
-from proxypool import createTestProxyPool
-
-def createPool():
-    pool = RenrenAccountPool()
-    pool.init(CFD.TEST_HOST,
-        CFD.TEST_USER_NAME,
-        CFD.TEST_PWD,
-        CFD.TEST_DATA_BASE);
-    return pool
 
 def createTables(db):
-    with open('resourceschema.sql') as script:
+    with open('schema/resource.sql') as script:
         lines = script.readlines()
         command = ''
         for i in range(0, len(lines)):
@@ -45,7 +38,9 @@ def dropTables(db):
     db.cursor.execute(script) 
     db.mdbConnection.commit()
 
-def test(pool):
+def testRenrenAccountPool():
+    pool = createTestRenrenAccountPool()
+
     usn1 = "username_1"
     pwd1 = "password_1"
     usn2 = "username_2"
@@ -223,14 +218,15 @@ def testProxyPool():
 
 def main():
     log.config(GC.LOG_FILE_DIR + 'account_pool_test', 'debug', 'debug')
-    pool = createPool()
+    pool = createTestRenrenAccountPool()
     createTables(pool)
     dropTables(pool)
     createTables(pool)
-    test(pool)
+    
+    testRenrenAccountPool()
     testProxyPool()
+   
     dropTables(pool)
-    pool.close()
     log.info("Pass the test!")
 
 if __name__ == "__main__":

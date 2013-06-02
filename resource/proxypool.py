@@ -1,13 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import renrenagent
-import confidential as CFD
+from jx import log
+from resource.proxy import Proxy
+from utils import confidential as CFD
+from crawl import renrenagent
+
 import MySQLdb as mdb
-import log
 import threading
 
-from proxy import Proxy
 
 def createProdProxyPool():
     pool = ProxyPool()

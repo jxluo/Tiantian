@@ -1,13 +1,15 @@
 #!/usr/bin/python
 #-*-coding:utf-8 -*-
+
+from jx import log
+from utils import globalconfig as GC
+from utils import util
+
 from urllib import urlencode
 import urllib2
 import re
 from bs4 import BeautifulSoup
 import bs4
-import log
-import globalconfig as GC
-import util
 import time
 
 

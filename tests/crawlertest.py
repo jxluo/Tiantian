@@ -1,25 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import log
-import globalconfig as GC
-from crawler import Crawler
-from crawler import CrawlerException
-from crawler import CrawlerErrorCode
-from renrenagent import UserInfo
-from renrenagent import RenrenAgent
-from database import UserNode
-from database import DataBase
-import database
+from jx import log
+from utils import globalconfig as GC
+from crawl.crawler import Crawler
+from crawl.crawler import CrawlerException
+from crawl.crawler import CrawlerErrorCode
+from crawl.renrenagent import UserInfo
+from crawl.renrenagent import RenrenAgent
+from data.database import UserNode
+from data.database import DataBase
+from resource import renrenaccountpool
+from tests.databasetest import createConnection
+from tests.databasetest import createTables
+from tests.databasetest import dropTables
+
 import time
 import threading
-
-from databasetest import createConnection
-from databasetest import createTables
-from databasetest import dropTables
-
-import resourcepool
-
 import signal
 
 crawler = None
@@ -32,7 +29,7 @@ def test():
     dropTables(db)
     createTables(db)
 
-    pool = resourcepool.createProdRenrenAccountPool()
+    pool = renrenaccountpool.createProdRenrenAccountPool()
     accounts = pool.getAccounts(1)
     account = accounts[0]
 
