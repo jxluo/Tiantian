@@ -26,6 +26,8 @@ class ReadOnlyDataStore:
     """
 
     LOCK = threading.RLock()
+    offset = 0
+    step = 100000
 
     def init(self, host, username, password, database):
         """Initialize the mysql connection.
@@ -80,13 +82,34 @@ class ReadOnlyDataStore:
             ReadOnlyDataStore.releaseLock()
         return profiles;
 
-    def getAThousandProfiles(self):
-        """Returns 1000 prifles, next call will return next 1000 profiles. 
+    def get100KProfiles(self):
+        """Returns 100, 000 prifles, next call will return next 1000 profiles. 
         If there is no more profiles, it will return a empty list.
 
         Returns: [Profile] The profile list.
         """
-        pass
+        ReadOnlyDataStore.acquireLock()
+        profiles = []
+        try:
+            command = """
+                SELECT id, name, gender, hometown,
+                   residence, birthday,
+                   visitor_number, friend_number,
+                   recent_visitor_number, home_page_friend_number
+                FROM Persons
+                LIMIT %s OFFSET %s;
+                """
+            self.cursor.execute(command, [self.step, self.offset])
+            rows = self.cursor.fetchall()
+            self.offset += len(rows)
+            if len(rows) > 0:
+                for row in rows:
+                    profiles.append(self.convertToProfile(row))
+        except Exception, e:
+            log.warning("Get 100K profiles failed!" + str(e))
+        finally:
+            ReadOnlyDataStore.releaseLock()
+        return profiles;
     
     def getAllCreatedTime(self):
         """Returns all the create_time in the data store.
