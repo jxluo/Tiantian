@@ -9,19 +9,8 @@ from data.database import Profile
 from data.database import Gender
 from data.readonlydatastore import createProdReadOnlyDataStore
 from data.readonlydatastore import ReadOnlyDataStore
-
-
-class MapValue:
-    key = None # The key, it's a char or string.
-    code = None # The unicode value of the key if the key is a char.
-
-    count = 0 # How many times it appear.
-    maleCount = 0 # How many male have this char in his name.
-    femaleCount = 0 # How many female have this char in her name.
-    
-    def __init__(self, key, code):
-        self.key = key
-        self.code = code
+from analyse.result import MapValue
+from analyse.result import Result
     
 def valueCmp(x, y):
     return x[1].count < y[1].count
@@ -29,19 +18,8 @@ def valueCmp(x, y):
 class Analyser:
     """Analysis the data in data store and build the index of the result."""
 
-    allXingCharCount = 0
-    xingCharMap = {} # Family name character map object.
-
-    allXingCount = 0
-    xingMap = {} # Family name string map object.
-
-    allMingCharCount = 0
-    mingCharMap = {} # First name character map object.
-    
-    allMingCount = 0
-    mingMap = {} # First name string map object.
-
     dataStore = None # The data source.
+    result = Result()
 
     def __init__(self):
         self.dataStore = createProdReadOnlyDataStore()
@@ -51,42 +29,23 @@ class Analyser:
         profiles = self.getProfiles()
         print 'Profile number:  ' + str(len(profiles))
         self.processProfiles(profiles)
+        self.result.caculate()
 
-
-
-
-    def writeMapToFile(self, m, fname):
-        f = open(fname, 'w')
-        values = [item[1] for item in m.items()]
-        values.sort(key=lambda x: x.count, reverse=True)
-        print 'Total: ' + str(len(values))
-        f.write('Total: ' + str(len(values)) + '\n')
-        for value in values:
-            f.write(value.key.encode('utf-8') + '\t')
-            if value.code: f.write(str(value.code) + '\t')
-            f.write(str(value.count) + '\t')
-            f.write(str(value.maleCount) + '\t')
-            f.write(str(value.femaleCount) + '\t')
-            if value.femaleCount > 1:
-                f.write(str(float(value.maleCount) / value.femaleCount) + '\t')
-            f.write('\n')
-        f.close()
 
     def buildIndex(self):
-        """Build  the index with the result."""
-        print 'All Xing:  ' + str(self.allXingCount)
-        print 'All Xing Char:  ' + str(self.allXingCharCount)
-        print 'All Ming:  ' + str(self.allMingCount)
-        print 'All Ming Char:  ' + str(self.allMingCharCount)
-        self.writeMapToFile(self.xingMap, 'tmp/XingMap')
-        self.writeMapToFile(self.xingCharMap, 'tmp/XingCharMap')
-        self.writeMapToFile(self.mingMap, 'tmp/MingMap')
-        self.writeMapToFile(self.mingCharMap, 'tmp/MingCharMap')
+        self.result.readableWriteToFile('tmp')
 
     def getProfiles(self):
         """Get a list of profiles from the data store."""
-        profiles = self.dataStore.getAllProfiles()
-        return filter(ReadOnlyDataStore.hasValidName, profiles)
+        #profiles = self.dataStore.getAllProfiles()
+        allProfiles = []
+        while True:
+            profiles = self.dataStore.get100KProfiles()
+            if profiles:
+                allProfiles.extend(profiles)
+            else:
+                break
+        return filter(ReadOnlyDataStore.hasValidName, allProfiles)
 
     def processProfiles(self, profiles):
         """Process a list of profiles."""
@@ -113,6 +72,13 @@ class Analyser:
         for char in ming:
             self.accumulateMingChar(char, profile)
 
+        # Set global info
+        self.result.personCount += 1
+        if profile.gender == Gender.MALE:
+            self.result.globalMaleCount += 1
+        elif profile.gender == Gender.FEMALE:
+            self.result.globalFemaleCount += 1
+
 
     def setValue(self, value, profile):
         """Set the vars in value base on the profile."""
@@ -124,39 +90,39 @@ class Analyser:
 
     def accumulateXingChar(self, char, profile):
         """Accumulate a single char for Xing."""
-        self.allXingCharCount += 1
-        value = self.xingCharMap.get(char)
+        self.result.allXingCharCount += 1
+        value = self.result.xingCharMap.get(char)
         if not value:
             value = MapValue(char, ord(char))
-            self.xingCharMap[char] = value
+            self.result.xingCharMap[char] = value
         self.setValue(value, profile)
 
     
     def accumulateMingChar(self, char, profile):
         """Accumulate a single char for Name."""
-        self.allMingCharCount += 1
-        value = self.mingCharMap.get(char)
+        self.result.allMingCharCount += 1
+        value = self.result.mingCharMap.get(char)
         if not value:
             value = MapValue(char, ord(char))
-            self.mingCharMap[char] = value
+            self.result.mingCharMap[char] = value
         self.setValue(value, profile)
     
     def accumulateXing(self, xing, profile):
         """Accumulate a single Xing."""
-        self.allXingCount += 1
-        value = self.xingMap.get(xing)
+        self.result.allXingCount += 1
+        value = self.result.xingMap.get(xing)
         if not value:
             value = MapValue(xing, None)
-            self.xingMap[xing] = value
+            self.result.xingMap[xing] = value
         self.setValue(value, profile)
     
     def accumulateMing(self, ming, profile):
         """Accumulate a single Name."""
-        self.allMingCount += 1
-        value = self.mingMap.get(ming)
+        self.result.allMingCount += 1
+        value = self.result.mingMap.get(ming)
         if not value:
             value = MapValue(ming, None)
-            self.mingMap[ming] = value
+            self.result.mingMap[ming] = value
         self.setValue(value, profile)
 
 def main():
