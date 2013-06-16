@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from jx import log
+from jx import flag
+from jx.flag import FlagType
 from utils import globalconfig as GC
 from utils import router
 from data.database import createProdDataBase
@@ -18,6 +20,16 @@ from crawl.renrenagent import RenrenAgent
 import time
 import threading
 import signal
+
+flag.defineFlag(name='waiting_time', type_=FlagType.INT, default=0,\
+    description='Wait before crawling to let account become avaliable.(In mins)')
+
+flag.defineFlag(name='accounts_limit', type_=FlagType.INT, default=10,\
+    description='Account limit in a single thread.')
+flag.defineFlag(name='thread_number', type_=FlagType.INT, default=8,\
+    description='Crawling thread number in a single round.')
+flag.defineFlag(name='round_number', type_=FlagType.INT, default=30,\
+    description='Crawling round number.')
 
 currentCrawler = None
 stopSignal = False
@@ -36,7 +48,7 @@ class CrawlThread(threading.Thread):
 
     accountUsed = 0
     # limit 
-    ACCOUNTS_LIMIT = 10
+    ACCOUNTS_LIMIT = flag.getFlag('accounts_limit')
     FAIL_LOGIN_ACCOUNT_LIMIT = 5
 
     THREAD_ID_COUNT = 0
@@ -105,14 +117,6 @@ class CrawlThread(threading.Thread):
         try:
             while True:
                 # Prepare for agent, account and startnode.
-                if not agent or not account:
-                    agent,account = self.getAgentWithAccount()
-                    if not agent or not account:
-                        # No avaliable account, exit crawling.
-                        log.warning(
-                            'No avaliable agent for thread %s, exit crawling.' %\
-                            (self.threadId, ))
-                        break
                 if not startNode:
                     startNode, startNodeRowId = dataBase.getStartNode()
                     log.info('Thread %s, startnode: %s, %s' %\
@@ -121,6 +125,14 @@ class CrawlThread(threading.Thread):
                         # No avaliable start node, exit crawling.
                         log.error(
                             'No start node for thread %s, exit crawling.' %\
+                            (self.threadId, ))
+                        break
+                if not agent or not account:
+                    agent,account = self.getAgentWithAccount()
+                    if not agent or not account:
+                        # No avaliable account, exit crawling.
+                        log.warning(
+                            'No avaliable agent for thread %s, exit crawling.' %\
                             (self.threadId, ))
                         break
 
@@ -179,7 +191,8 @@ class MainCrawlThread(threading.Thread):
     dataBase = None
     renrenAccountPool = None
 
-    crawlRound = 30
+    THREAD_NUMBER = flag.getFlag('thread_number')
+    ROUND_NUMBER = flag.getFlag('round_number')
 
     def __init__(self):
         threading.Thread.__init__(self)
@@ -225,9 +238,9 @@ class MainCrawlThread(threading.Thread):
             thread.join()
 
     def run(self):
-        for i in range(0, self.crawlRound):
+        for i in range(0, self.ROUND_NUMBER):
             log.info('>>>>>>>>  Main Crawl Thread Round(%s)  <<<<<<<<' % (i+1))
-            self.startMultiThreadCrawling(8)
+            self.startMultiThreadCrawling(self.THREAD_NUMBER)
             #self.startMultiThreadCrawlingWithProxy(1)
             #manager.startSignleThreadCrawling()
 
@@ -260,11 +273,12 @@ class CrawlManager:
 
         
 def main():
+    flag.processArguments()
     log.config(GC.LOG_FILE_DIR + 'CrawlManager', 'info', 'info')
     signal.signal(signal.SIGINT, detectSignal)
-    time.sleep(10)
-    print 'sleep 10 seconds'
-    time.sleep(60*60*3)
+    waitingTime = flag.getFlag('waiting_time')
+    log.info('Wait for: ' + str(waitingTime) + ' minutes')
+    time.sleep(waitingTime * 60)
     manager = CrawlManager()
     manager.start()
 
