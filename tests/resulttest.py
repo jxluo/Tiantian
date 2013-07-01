@@ -5,6 +5,8 @@ from jx import log
 from utils import globalconfig as GC
 from analyse.result import MapValue
 from analyse.result import Result
+from tests.util import getRandomResult
+from tests.util import assertValueEqual
 
 import random
 
@@ -12,15 +14,6 @@ import random
 fileForMapValueTest = 'tmp/mapvaluetest'
 fileForResultTest = 'tmp/resulttest'
 dirForResultTest = 'tmp'
-
-
-def assertValueEqual(a, b):
-    assert a.key == b.key
-    assert a.code == b.code
-    assert a.count == b.count
-    assert a.maleCount == b.maleCount
-    assert a.femaleCount == b.femaleCount
-    assert a.rank == b.rank
 
 
 def testMapValueSerialization():
@@ -92,23 +85,6 @@ def assertResultEqual(a, b):
     assertArrayEqual(a.mingCharSortedArray, b.mingCharSortedArray)
     assertArrayEqual(a.mingSortedArray, b.mingSortedArray)
 
-def getRadomMapValue():
-    key = unichr(random.randint(0x4E00, 0x9FCC + 1))
-    value = MapValue(key, ord(key))
-    value.count = random.randint(0, 100)
-    value.maleCount = random.randint(0, 100)
-    value.femaleCount = random.randint(0, 100)
-    value.rank = random.randint(0, 100)
-    return value
-
-def getRandomMap():
-    length = random.randint(1000, 5000)
-    m = {}
-    for i in range(0, length):
-        value = getRadomMapValue()
-        m[value.key] = value
-    return m
-
 def getRandomArray():
     length = random.randint(1000, 5000)
     array = []
@@ -127,22 +103,8 @@ def assertMapArrayMatch(m, a):
             assert value1.count >= value2.count
 
 def testResultSerialization():
-    result = Result()
-    result.personCount = random.randint(100,1000)
-    result.globalMaleCount = random.randint(100,1000)
-    result.globalFemaleCount = random.randint(100,1000)
+    result = getRandomResult()
 
-    result.allXingCharCount = random.randint(100,1000)
-    result.allXingCount = random.randint(100,1000)
-    result.allMingCharCount = random.randint(100,1000)
-    result.allMingCount = random.randint(100,1000)
-
-    result.xingCharMap = getRandomMap()
-    result.xingMap = getRandomMap()
-    result.mingCharMap = getRandomMap()
-    result.mingMap = getRandomMap()
-
-    result.caculate()
     assertMapArrayMatch(result.xingCharMap, result.xingCharSortedArray)
     assertMapArrayMatch(result.xingMap, result.xingSortedArray)
     assertMapArrayMatch(result.mingCharMap, result.mingCharSortedArray)

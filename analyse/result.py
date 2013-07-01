@@ -18,37 +18,47 @@ class MapValue:
         self.key = key
         self.code = code
 
-    def write(self, f):
+    def serialize(self):
+        """Serialize the object to a string and return."""
+        string = ''
         # Key length and key sring, 4 + x bytes
         keyString = self.key.encode('utf-8')
         lenOfKey = len(keyString)
         buf = pack('<i%ss' % lenOfKey, lenOfKey, keyString)
-        f.write(buf)
+        string = string + buf
 
         # Code 4 bytes, If there is no code, write a 0
         codeToWrite = 0
         if self.code: codeToWrite = self.code
         buf = pack('<i', codeToWrite)
-        f.write(buf)
+        string = string + buf
 
         # The count, male count, female count 4 * 3 = 12 bytes
         buf = pack('<3i', self.count, self.maleCount, self.femaleCount)
-        f.write(buf)
+        string = string + buf
         
         # The rank 4 bytes
         buf = pack('<i', self.rank)
-        f.write(buf)
+        string = string + buf
 
-    def read(self, f):
+        return string
+
+    def cut(self, string, length):
+        buf = string[:length]
+        newString = string[length:]
+        return buf, newString
+   
+    def unserialize(self, string):
+        """Construct the object from a string."""
         # Key length and key sring, 4 + x bytes
-        buf = f.read(4)
+        buf, string = self.cut(string, 4)
         lenOfKey, = unpack('<i', buf)
-        buf = f.read(lenOfKey)
+        buf, string = self.cut(string, lenOfKey)
         keyString, = unpack('<%ss' % lenOfKey, buf)
         self.key = keyString.decode('utf-8')
 
         # Code 4 bytes, If there is no code, it will be 0
-        buf = f.read(4)
+        buf, string = self.cut(string, 4)
         codeReaded, = unpack('<i', buf)
         if codeReaded:
             self.code = codeReaded
@@ -56,12 +66,28 @@ class MapValue:
             self.code = None
 
         # The count, male count, female count 4 * 3 = 12 bytes
-        buf = f.read(12)
+        buf, string = self.cut(string, 12)
         self.count, self.maleCount, self.femaleCount = unpack('<3i', buf)
         
         # The rank 4 bytes
-        buf = f.read(4)
+        buf, string = self.cut(string, 4)
         self.rank, = unpack('<i', buf)
+
+    def write(self, f):
+        string = self.serialize()
+        lenOfStr = len(string)
+        # The length of the serialized string, 4 bytes.
+        # The serialized string.
+        buf = pack('<i%ss' % lenOfStr, lenOfStr, string)
+        f.write(buf)
+
+    def read(self, f):
+        # String length and serialized sring, 4 + x bytes
+        buf = f.read(4)
+        lenOfStr, = unpack('<i', buf)
+        buf = f.read(lenOfStr)
+        string, = unpack('<%ss' % lenOfStr, buf)
+        self.unserialize(string)
 
 class Result:
     """Analysis result."""
