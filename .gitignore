@@ -46,6 +46,9 @@ tmp/
 # Lab directory
 lab/
 
+# Lab directory
+lab/files
+
 # confidential file
 /utils/confidential.py
 
