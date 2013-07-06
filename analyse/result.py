@@ -1,12 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from jx import flag
+from jx import log
 from struct import *
+
+flag.defineFlag('xing_char_map_min_count', flag.FlagType.INT, 2,\
+    'map value with count smaller than this will be filtered out.')
+flag.defineFlag('xing_map_min_count', flag.FlagType.INT, 2,\
+    'map value with count smaller than this will be filtered out.')
+flag.defineFlag('ming_char_map_min_count', flag.FlagType.INT, 2,\
+    'map value with count smaller than this will be filtered out.')
+flag.defineFlag('ming_map_min_count', flag.FlagType.INT, 5,\
+    'map value with count smaller than this will be filtered out.')
 
 class MapValue:
     key = None # The key, it's a char or string.
-    code = None # The unicode value of the key if the key is a char.
-
+    code = None # The unicode value of the key if the key is a char.  
     count = 0 # How many times it appear.
     maleCount = 0 # How many male have this char in his name.
     femaleCount = 0 # How many female have this char in her name.
@@ -116,8 +126,47 @@ class Result:
     globalFemaleCount = 0 # Number of female in global scope.
     # TODO: global location count
 
+    def filter(self):
+        xingCharMapMinCount = flag.getFlag('xing_char_map_min_count')
+        xingMapMinCount = flag.getFlag('xing_map_min_count')
+        mingCharMapMinCount = flag.getFlag('ming_char_map_min_count')
+        mingMapMinCount = flag.getFlag('ming_map_min_count')
+
+        log.info('==== Start filter, before: ====')
+        log.info('Number of different xing:  %s' % len(self.xingMap))
+        log.info('Number of different xing char:  %s' % len(self.xingCharMap))
+        log.info('Number of different ming:  %s' % len(self.mingMap))
+        log.info('Number of different ming char:  %s' % len(self.mingCharMap))
+
+        Result.filterMapOnThreshold(self.xingCharMap, xingCharMapMinCount)
+        Result.filterMapOnThreshold(self.xingMap, xingMapMinCount)
+        Result.filterMapOnThreshold(self.mingCharMap, mingCharMapMinCount)
+        Result.filterMapOnThreshold(self.mingMap, mingMapMinCount)
+
+        log.info('==== After filter: ====')
+        log.info('Number of different xing:  %s' % len(self.xingMap))
+        log.info('Number of different xing char:  %s' % len(self.xingCharMap))
+        log.info('Number of different ming:  %s' % len(self.mingMap))
+        log.info('Number of different ming char:  %s' % len(self.mingCharMap))
+
+    @staticmethod
+    def filterMapOnThreshold(m, threshold):
+        """Filter out the items in the map with count less than threshold.
+        This function is optional when analysing.
+        """
+        if threshold < 2:
+            return
+
+        for item in m.items():
+            mapValue = item[1]
+            if mapValue.count < threshold:
+                m.pop(item[0])
+        
+
     def caculate(self):
-        """Caculate detail information, such as rank."""
+        """Caculate detail information, such as rank.
+        This fucntion is necessary when analysing. 
+        """
         self.xingCharSortedArray = Result.caculateRank(self.xingCharMap)
         self.xingSortedArray = Result.caculateRank(self.xingMap)
         self.mingCharSortedArray = Result.caculateRank(self.mingCharMap)
@@ -235,25 +284,29 @@ class Result:
 
     def readableWriteToFile(self, dirName):
         """Write readable result to file."""
-        print 'All Xing:  ' + str(self.allXingCount)
-        print 'All Xing Char:  ' + str(self.allXingCharCount)
-        print 'All Ming:  ' + str(self.allMingCount)
-        print 'All Ming Char:  ' + str(self.allMingCharCount)
+        log.info('==== Write result files to directory: %s ====' % dirName)
+        log.info('Number of xing:  %s' % self.allXingCount)
+        log.info('Number of different xing:  %s' % len(self.xingMap))
+        log.info('Number of xing char:  %s' % self.allXingCharCount)
+        log.info('Number of different xing char:  %s' % len(self.xingCharMap))
+        log.info('Number of ming:  %s' % self.allMingCount)
+        log.info('Number of different ming:  %s' % len(self.mingMap))
+        log.info('Number of ming char:  %s' % self.allMingCharCount)
+        log.info('Number of different ming char:  %s' % len(self.mingCharMap))
         self.readableWriteMapToFile(
-            self.xingMap, self.xingSortedArray, 'tmp/XingMap')
+            self.xingMap, self.xingSortedArray, dirName + '/XingMap')
         self.readableWriteMapToFile(
-            self.xingCharMap, self.xingCharSortedArray, 'tmp/XingCharMap')
+            self.xingCharMap, self.xingCharSortedArray, dirName + '/XingCharMap')
         self.readableWriteMapToFile(
-            self.mingMap, self.mingSortedArray, 'tmp/MingMap')
+            self.mingMap, self.mingSortedArray, dirName + '/MingMap')
         self.readableWriteMapToFile(
-            self.mingCharMap, self.mingCharSortedArray, 'tmp/MingCharMap')
+            self.mingCharMap, self.mingCharSortedArray, dirName + '/MingCharMap')
 
 
     def readableWriteMapToFile(self, m, a, fileName):
         f = open(fileName, 'w')
         values = [m[key] for key in a]
         #values.sort(key=lambda x: x.count, reverse=True)
-        print 'Total: ' + str(len(values))
         f.write('Total: ' + str(len(values)) + '\n')
         for value in values:
             f.write(value.key.encode('utf-8') + '\t')

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from jx import log
+from jx import flag
 from utils.util import isHanChar
 from utils import confidential as CFD
 from utils import globalconfig as GC
@@ -12,6 +13,10 @@ from data.readonlydatastore import ReadOnlyDataStore
 from analyse.result import MapValue
 from analyse.result import Result
     
+
+flag.defineFlag('use_result_filter', flag.FlagType.BOOLEAN, True,\
+    'Whether there is need to filter some unnecessary content in result.')
+
 def valueCmp(x, y):
     return x[1].count < y[1].count
 
@@ -27,13 +32,16 @@ class Analyser:
     def analyse(self):
         """Analyse the data."""
         profiles = self.getProfiles()
-        print 'Profile number:  ' + str(len(profiles))
+        log.info('Total Profile number:  %s' % len(profiles))
         self.processProfiles(profiles)
+        if flag.getFlag('use_result_filter'):
+            self.result.filter()
         self.result.caculate()
 
 
     def buildIndex(self):
-        self.result.readableWriteToFile('tmp')
+        self.result.readableWriteToFile('files')
+        self.result.writeToFile('files/serialized_result')
 
     def getProfiles(self):
         """Get a list of profiles from the data store."""
@@ -130,4 +138,7 @@ def main():
     analyser.analyse()
     analyser.buildIndex()
 
-main()
+if __name__ == "__main__":
+    flag.processArguments()
+    log.config(GC.LOG_FILE_DIR + 'Analyser', 'info', 'info')
+    main()

@@ -285,16 +285,24 @@ class AnalysedDataBase:
             result.globalFemaleCount)
 
         self._importMap(result.xingCharMap, self.XING_CHAR_MAP_NAME)
+        log.info('XingCharMap imported...')
         self._importMap(result.xingMap, self.XING_MAP_NAME)
+        log.info('XingMap imported...')
         self._importMap(result.mingCharMap, self.MING_CHAR_MAP_NAME)
+        log.info('MingCharMap imported...')
         self._importMap(result.mingMap, self.MING_MAP_NAME)
+        log.info('MingMap imported...')
         
         self._importRankArray(\
             result.xingCharSortedArray, self.XING_CHAR_RANK_NAME)
+        log.info('XingCharArray imported...')
         self._importRankArray(result.xingSortedArray, self.XING_RANK_NAME)
+        log.info('XingArray imported...')
         self._importRankArray(\
             result.mingCharSortedArray, self.MING_CHAR_RANK_NAME)
+        log.info('MingCharArray imported...')
         self._importRankArray(result.mingSortedArray, self.MING_RANK_NAME)
+        log.info('MingArray imported...')
 
     @staticmethod
     def _acquireLock():
