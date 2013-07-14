@@ -5,8 +5,9 @@
     <link rel="stylesheet" type="text/css"
       href="{% static "tt/css/base.css" %}"></link>
     <script type="text/javascript" src="{% static "tt/js/base.js" %}"></script>
+    {% block viewExtendHead %}{% endblock %}
   </head>
-  <body>
+  <body onload="{% block bodyLoadedScript %}{% endblock %}">
     {% block viewContent %}
       Base Tempalte
     {% endblock %}

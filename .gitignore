@@ -55,6 +55,7 @@ files/
 # data file in tools
 /tools/data
 
+/ttsite/tmp.log
 
 
 

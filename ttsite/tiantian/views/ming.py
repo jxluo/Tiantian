@@ -3,8 +3,10 @@
 
 from django.http import HttpResponse
 from django.views.generic.base import View
+from django.template import RequestContext, loader
 
 class MingView(View):
     def get(self, request):
-        # <view logic>
-        return HttpResponse('Ming View')
+        template = loader.get_template('tt/ming.tpl')
+        context = RequestContext(request, {})
+        return HttpResponse(template.render(context))

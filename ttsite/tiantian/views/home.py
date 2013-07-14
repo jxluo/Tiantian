@@ -10,7 +10,7 @@ class HomeView(View):
 
     def get(self, request):
         helloString = 'Hello world!'
-        template = loader.get_template('tiantian/home.html')
+        template = loader.get_template('tt/home.tpl')
         context = RequestContext(request, {
             'helloString': helloString,
         })

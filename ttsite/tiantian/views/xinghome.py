@@ -3,8 +3,11 @@
 
 from django.http import HttpResponse
 from django.views.generic.base import View
+from django.template import RequestContext, loader
 
 class XingHomeView(View):
+    
     def get(self, request):
-        # <view logic>
-        return HttpResponse('Xing Home View')
+        template = loader.get_template('tt/xinghome.tpl')
+        context = RequestContext(request, {})
+        return HttpResponse(template.render(context))
