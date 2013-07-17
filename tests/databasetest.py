@@ -268,6 +268,15 @@ def testStartList(db):
     result6 = db.getStartNodes(5)
     assert len(result6) == 1
 
+    db.releaseAllStartNode()
+    db.insertIntoStartList('id4')
+    db.insertIntoStartList('id5')
+    db.insertIntoStartList('id6')
+    assert len(db.getStartNodes(5)) == 4
+    db.releaseAllStartNode()
+    db.clearAllStartNode()
+    assert len(db.getStartNodes(5)) == 0
+
 
 def main():
     log.config(GC.LOG_FILE_DIR + 'database_test', 'debug', 'debug')

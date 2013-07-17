@@ -16,6 +16,7 @@ from crawl.crawler import Crawler
 from crawl.crawler import CrawlerException
 from crawl.crawler import CrawlerErrorCode
 from crawl.renrenagent import RenrenAgent
+from crawl.startnodecrawler import StartNodeCrawler
 
 import time
 import threading
@@ -198,9 +199,6 @@ class MainCrawlThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def startMultiThreadCrawling(self, threadNumber):
-        self.dataBase = createProdDataBase()
-        self.dataBase.releaseAllStartNode()
-        self.renrenAccountPool = createProdRenrenAccountPool()
 
         threads = []
         for i in range(0, threadNumber):
@@ -213,16 +211,10 @@ class MainCrawlThread(threading.Thread):
             thread.join()
 
     def startSignleThreadCrawling(self):
-        self.dataBase = createProdDataBase()
-        self.dataBase.releaseAllStartNode()
-        self.renrenAccountPool = createProdRenrenAccountPool()
         thread = CrawlThread(self.dataBase, self.renrenAccountPool)
         thread.run()
     
     def startMultiThreadCrawlingWithProxy(self, threadNumber):
-        self.dataBase = createProdDataBase()
-        self.dataBase.releaseAllStartNode()
-        self.renrenAccountPool = createProdRenrenAccountPool()
         pool = createProdProxyPool()
         proxies = pool.getProxies(threadNumber)
 
@@ -238,11 +230,17 @@ class MainCrawlThread(threading.Thread):
             thread.join()
 
     def run(self):
+        self.dataBase = createProdDataBase()
+        self.renrenAccountPool = createProdRenrenAccountPool()
         for i in range(0, self.ROUND_NUMBER):
             log.info('>>>>>>>>  Main Crawl Thread Round(%s)  <<<<<<<<' % (i+1))
             self.startMultiThreadCrawling(self.THREAD_NUMBER)
             #self.startMultiThreadCrawlingWithProxy(1)
             #manager.startSignleThreadCrawling()
+            if self.dataBase.needMoreStartNode():
+                startNodeCrawler = StartNodeCrawler(\
+                    self.dataBase, self.renrenAccountPool)
+                startNodeCrawler.startCrawling()
 
             try:
                 Crawler.detectStopSignal()

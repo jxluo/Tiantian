@@ -360,6 +360,21 @@ class DataBase:
             return ()
         finally:
             DataBase.releaseLock()
+    
+    def clearAllStartNode(self):
+        """Delete all startNode in the table."""
+        DataBase.acquireLock()
+        try:
+            command = """
+                DELETE FROM StartList;
+            """
+            self.cursor.execute(command)
+            self.mdbConnection.commit()
+        except Exception, e:
+            log.warning("Clear start list node failed!" + str(e))
+            self.mdbConnection.rollback()
+        finally:
+            DataBase.releaseLock()
 
     def releaseStartNode(self, tableId):
         """Release a startNode by a table id.
