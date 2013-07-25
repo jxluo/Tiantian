@@ -20,6 +20,8 @@ class StartNodeCrawler:
     
     userList = None
     shareList = None
+
+    REQUEST_LIMIT = 80
     
     def __init__(self, dataBase=None, accountPool=None):
         if dataBase:
@@ -34,6 +36,7 @@ class StartNodeCrawler:
         self.dataBase.releaseAllStartNode()
         self.userList = []
         self.shareList = []
+        self.requestCount = 0
 
     def getAgentWithAccount(self):
         loginFailLimit = 5
@@ -69,14 +72,19 @@ class StartNodeCrawler:
 
     def expandSharePage(self, sharePageInfo, agent):
         for url in sharePageInfo.popularShareList:
+            if self.requestCount >= self.REQUEST_LIMIT:
+                return
             log.info('Share agent is crawling url: %s' % url)
             info = agent.getSharePageInfo(url)
+            self.requestCount += 1
             if info:
                 for user in info.commentUserList:
                     self.addUser(user)
                 for shareUrl in info.popularShareList:
                     self.shareList.append(shareUrl)
             time.sleep(1)
+            if info:
+                self.expandSharePage(info, agent)
 
     def addUser(self, userId):
         if userId not in self.userList:
@@ -111,6 +119,7 @@ class StartNodeCrawler:
                 raise Exception('Get start share url fail.')
             time.sleep(0.8)
 
+            self.requestCount = 1
             self.expandSharePage(info, agent)
             self.handleUserList()
             # Update the new share url
