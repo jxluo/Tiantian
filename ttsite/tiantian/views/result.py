@@ -19,6 +19,7 @@ class ResultView(View):
 
         xing, ming = parseReulst
         resultData = getResultFetcher().fetchData(xing, ming)
+        print resultData.xingInfo
 
         template = loader.get_template('tt/result.tpl')
         context = RequestContext(request, {

@@ -31,14 +31,14 @@ def testAanlysedDataBase():
     rdb = createTestAnalysedDataBase()
     
     # Test global info
-    rdb.readGlobalInfo()
-    assert rdb.allXingCharCount == result.allXingCharCount
-    assert rdb.allXingCount == result.allXingCount
-    assert rdb.allMingCharCount == result.allMingCharCount
-    assert rdb.allMingCount == result.allMingCount
-    assert rdb.personCount == result.personCount
-    assert rdb.maleCount == result.globalMaleCount
-    assert rdb.femaleCount == result.globalFemaleCount
+    info = rdb.getGlobalInfo()
+    assert info.allXingCharCount == result.allXingCharCount
+    assert info.allXingCount == result.allXingCount
+    assert info.allMingCharCount == result.allMingCharCount
+    assert info.allMingCount == result.allMingCount
+    assert info.personCount == result.personCount
+    assert info.maleCount == result.globalMaleCount
+    assert info.femaleCount == result.globalFemaleCount
 
     # Test Map
     for value in getAllValue(result.xingCharMap):

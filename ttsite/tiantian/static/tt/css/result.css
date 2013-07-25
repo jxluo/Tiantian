@@ -1,0 +1,96 @@
+/**
+ * Css file for result view.
+ */
+
+
+body {
+  text-align: center;
+  margin: 0;
+}
+
+
+.result-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background-color: #aaa;
+  z-index: 2;
+}
+
+.result-embedded-search-box {
+  display: inline-block;
+  background-color: white;
+  padding: 5px 25px;
+}
+
+.result-mini-logo,
+.result-search-input,
+.result-search-button {
+  height: 28px;
+}
+
+.result-mini-logo {
+  display: inline-block;
+}
+
+.result-search-input {
+  display: inline;
+  width: 260;
+  margin-right: 20px;
+  border: 1px solid #999;
+}
+
+.result-search-input:hover {
+  border: 1px solid #444;
+}
+
+
+.result-search-button {
+  display: inline;
+  background-color: #99f;
+  text-align: center;
+  padding: 4px 7px;
+  cursor: pointer;
+  border-radius: 2px;
+  border: 1px solid #99f;
+}
+
+.result-content-container {
+  margin: auto auto auto auto;
+  width: 500px;
+  min-height: 100%;
+  display: inline-block;
+  background-color: red;
+  bottom: 0;
+  opacity: 0.4;
+  z-index: 1;
+}
+
+.result-content-summary {
+  margin-top: 50px;
+  height: 100px;
+  background-color: blue;
+}
+
+.result-content-detail {
+  padding: 10px;
+  background-color: green;
+}
+
+.result-content-detail-xing {
+  height: 100px;
+  background-color: pink;
+}
+
+.result-content-detail-mingchar {
+  height: 100px;
+  background-color: blue;
+}
+
+.result-debug-info {
+  position: fixed;
+  left: 15px;
+  bottom: 5px;
+}

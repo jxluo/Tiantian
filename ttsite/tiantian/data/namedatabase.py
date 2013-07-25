@@ -4,7 +4,6 @@
 from sitedata.analyseddatabase import createTestAnalysedDataBase
 from tiantian.data.info import Info
 
-
 print '############################################################'
 print '#################  Load Name Data Base  ####################'
 print '############################################################'
@@ -16,7 +15,9 @@ def getNameDataBase():
 
 class NameDataBase:
     
+
     _dataBase = None
+    _globalInfo = _analysedDataBase.getGlobalInfo()
     
     def __init__(self):
         global _analysedDataBase
@@ -24,15 +25,15 @@ class NameDataBase:
 
     def getXingInfo(self, xing):
         value = self._dataBase.getXingMap(xing)
-        return Info.fromValue(value)
+        return Info.fromValue(value, self._globalInfo)
 
     def getMingInfo(self, ming):
         value = self._dataBase.getMingMap(ming)
-        return Info.fromValue(value)
+        return Info.fromValue(value, self._globalInfo)
 
     def getMingCharInfo(self, mingChar):
         value = self._dataBase.getMingCharMap(mingChar)
-        return Info.fromValue(value)
+        return Info.fromValue(value, self._globalInfo)
 
 
 _nameDataBase = NameDataBase()

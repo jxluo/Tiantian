@@ -18,11 +18,7 @@ def createTestAnalysedDataBase():
         CFD.TEST_DATA_BASE);
     return db
 
-
-class AnalysedDataBase:
-    """The class handle the mysql operation, provide a data interface of
-        analysed data base.
-    """
+class GlobalInfo:
     allXingCharCount = None
     allXingCount = None
     allMingCharCount = None
@@ -30,6 +26,11 @@ class AnalysedDataBase:
     personCount = None
     maleCount = None
     femaleCount = None
+
+class AnalysedDataBase:
+    """The class handle the mysql operation, provide a data interface of
+        analysed data base.
+    """
 
     LOCK = threading.RLock()
 
@@ -192,10 +193,11 @@ class AnalysedDataBase:
             AnalysedDataBase._releaseLock()
         return sucess
     
-    def readGlobalInfo(self):
+    def getGlobalInfo(self):
         """Get the global information."""
         AnalysedDataBase._acquireLock()
         try:
+            globalInfo = GlobalInfo()
             command = """SELECT
                 all_xing_char_count, all_xing_count,
                 all_ming_char_count, all_ming_count,
@@ -208,13 +210,18 @@ class AnalysedDataBase:
             if not rows:
                 log.error('Read gloabal information fail!')
             row = rows[0]
-            self.allXingCharCount = row[0]
-            self.allXingCount = row[1]
-            self.allMingCharCount = row[2]
-            self.allMingCount = row[3]
-            self.personCount = row[4]
-            self.maleCount = row[5]
-            self.femaleCount = row[6]
+            globalInfo.allXingCharCount = row[0]
+            globalInfo.allXingCount = row[1]
+            globalInfo.allMingCharCount = row[2]
+            globalInfo.allMingCount = row[3]
+            globalInfo.personCount = row[4]
+            globalInfo.maleCount = row[5]
+            globalInfo.femaleCount = row[6]
+            return globalInfo
+        except Exception, e:
+            log.warning("Get global info failed! " + str(e))
+            self.mdbConnection.rollback()
+            return None
         finally:
             AnalysedDataBase._releaseLock()
 
