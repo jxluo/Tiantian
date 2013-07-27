@@ -234,13 +234,15 @@ class MainCrawlThread(threading.Thread):
         self.renrenAccountPool = createProdRenrenAccountPool()
         for i in range(0, self.ROUND_NUMBER):
             log.info('>>>>>>>>  Main Crawl Thread Round(%s)  <<<<<<<<' % (i+1))
-            self.startMultiThreadCrawling(self.THREAD_NUMBER)
-            #self.startMultiThreadCrawlingWithProxy(1)
-            #manager.startSignleThreadCrawling()
+
             if self.dataBase.needMoreStartNode():
                 startNodeCrawler = StartNodeCrawler(\
                     self.dataBase, self.renrenAccountPool)
                 startNodeCrawler.startCrawling()
+
+            self.startMultiThreadCrawling(self.THREAD_NUMBER)
+            #self.startMultiThreadCrawlingWithProxy(1)
+            #manager.startSignleThreadCrawling()
 
             try:
                 Crawler.detectStopSignal()
