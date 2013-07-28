@@ -3,72 +3,52 @@
 
 from jx import log
 from utils import globalconfig as GC
-from analyse.result import MapValue
 from analyse.result import Result
+from entities.name_pb2 import RawNameItemInfo, GlobalNameInfo
 
 import random
 
-def assertValueEqual(a, b):
-    assert a
-    assert b
-    assert a.key == b.key
-    assert a.code == b.code
-    assert a.count == b.count
-    assert a.maleCount == b.maleCount
-    assert a.femaleCount == b.femaleCount
-    assert a.rank == b.rank
+def getRadomRawNameItemInfo():
+    info = RawNameItemInfo()
+    info.text = unichr(random.randint(0x4E00, 0x9FCC + 1))
+    info.count = random.randint(0, 100)
+    info.male_count = random.randint(0, 100)
+    info.female_count = random.randint(0, 100)
+    info.rank = random.randint(0, 100)
+    info.sum_count = random.randint(0, 10000)
+    return info
 
-def getRadomMapValue():
-    key = unichr(random.randint(0x4E00, 0x9FCC + 1))
-    haveCode = random.randint(0, 1)
-    if haveCode:
-        value = MapValue(key, ord(key))
-    else:
-        value = MapValue(key)
-    value.count = random.randint(0, 100)
-    value.maleCount = random.randint(0, 100)
-    value.femaleCount = random.randint(0, 100)
-    value.rank = random.randint(0, 100)
-    return value
-
-def getRandomMap(length):
+def getRandomResultMap(length):
     length = random.randint(length, length * 5)
     m = {}
     for i in range(0, length):
-        value = getRadomMapValue()
-        m[value.key] = value
-
-    # Assert 
-    m1 = {}
-    m2 = {}
-    items = m.items()
-    for item in items:
-        key1 = item[0]
-        key2 = item[1].key
-        assert key1 == key2
-        assert key1.encode('utf-8') == key2.encode('utf-8')
-        assert m1.get(key1) == None
-        m1[key1] = 1
-        assert m2.get(key1.encode('utf-8')) == None
-        m2[key1.encode('utf-8')] = 2
-
+        info = getRadomRawNameItemInfo()
+        m[info.text] = info
     return m
+
+
+def getRandomGlobalNameInfo():
+    info = GlobalNameInfo()
+    info.person_count = random.randint(100,1000)
+    info.male_count = random.randint(100,1000)
+    info.female_count = random.randint(100,1000)
+
+    info.xing_char_count = random.randint(100,1000)
+    info.xing_count = random.randint(100,1000)
+    info.ming_char_count = random.randint(100,1000)
+    info.ming_count = random.randint(100,1000)
+    info.xing_ming_count = random.randint(100,1000)
+
 
 def getRandomResult(length=1000):
     result = Result()
-    result.personCount = random.randint(100,1000)
-    result.globalMaleCount = random.randint(100,1000)
-    result.globalFemaleCount = random.randint(100,1000)
 
-    result.allXingCharCount = random.randint(100,1000)
-    result.allXingCount = random.randint(100,1000)
-    result.allMingCharCount = random.randint(100,1000)
-    result.allMingCount = random.randint(100,1000)
-
-    result.xingCharMap = getRandomMap(length)
-    result.xingMap = getRandomMap(length)
-    result.mingCharMap = getRandomMap(length)
-    result.mingMap = getRandomMap(length)
+    result.glbalInfo = getRandomGlobalNameInfo()
+    result.xingCharMap = getRandomResultMap(length)
+    result.xingMap = getRandomResultMap(length)
+    result.mingCharMap = getRandomResultMap(length)
+    result.mingMap = getRandomResultMap(length)
+    result.xingMingMap = getRandomResultMap(length)
 
     result.caculate()
     

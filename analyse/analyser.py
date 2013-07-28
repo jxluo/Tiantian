@@ -10,8 +10,8 @@ from data.database import Profile
 from data.database import Gender
 from data.readonlydatastore import createProdReadOnlyDataStore
 from data.readonlydatastore import ReadOnlyDataStore
-from analyse.result import MapValue
 from analyse.result import Result
+from entities.name_helper import NameHelper
     
 
 flag.defineFlag('use_result_filter', flag.FlagType.BOOLEAN, True,\
@@ -80,58 +80,69 @@ class Analyser:
         for char in ming:
             self.accumulateMingChar(char, profile)
 
+        self.accumulateXingMing(name, profile)
+
         # Set global info
-        self.result.personCount += 1
+        self.result.globalInfo.person_count += 1
         if profile.gender == Gender.MALE:
-            self.result.globalMaleCount += 1
+            self.result.globalInfo.male_count += 1
         elif profile.gender == Gender.FEMALE:
-            self.result.globalFemaleCount += 1
+            self.result.globalInfo.female_count += 1
 
 
-    def setValue(self, value, profile):
-        """Set the vars in value base on the profile."""
-        value.count += 1
+    def setInfo(self, info, profile):
+        """Set the vars in info base on the profile."""
+        info.count += 1
         if profile.gender == Gender.MALE:
-            value.maleCount += 1
+            info.male_count += 1
         elif profile.gender == Gender.FEMALE:
-            value.femaleCount += 1
+            info.female_count += 1
 
     def accumulateXingChar(self, char, profile):
         """Accumulate a single char for Xing."""
-        self.result.allXingCharCount += 1
-        value = self.result.xingCharMap.get(char)
-        if not value:
-            value = MapValue(char, ord(char))
-            self.result.xingCharMap[char] = value
-        self.setValue(value, profile)
+        self.result.globalInfo.xing_char_count += 1
+        info = self.result.xingCharMap.get(char)
+        if not info:
+            info = NameHelper.getInitedRawNameItemInfo(char)
+            self.result.xingCharMap[char] = info
+        self.setInfo(info, profile)
 
     
     def accumulateMingChar(self, char, profile):
         """Accumulate a single char for Name."""
-        self.result.allMingCharCount += 1
-        value = self.result.mingCharMap.get(char)
-        if not value:
-            value = MapValue(char, ord(char))
-            self.result.mingCharMap[char] = value
-        self.setValue(value, profile)
+        self.result.globalInfo.ming_char_count += 1
+        info = self.result.mingCharMap.get(char)
+        if not info:
+            info = NameHelper.getInitedRawNameItemInfo(char)
+            self.result.mingCharMap[char] = info
+        self.setInfo(info, profile)
     
     def accumulateXing(self, xing, profile):
         """Accumulate a single Xing."""
-        self.result.allXingCount += 1
-        value = self.result.xingMap.get(xing)
-        if not value:
-            value = MapValue(xing, None)
-            self.result.xingMap[xing] = value
-        self.setValue(value, profile)
+        self.result.globalInfo.xing_count += 1
+        info = self.result.xingMap.get(xing)
+        if not info:
+            info = NameHelper.getInitedRawNameItemInfo(xing)
+            self.result.xingMap[xing] = info
+        self.setInfo(info, profile)
     
     def accumulateMing(self, ming, profile):
         """Accumulate a single Name."""
-        self.result.allMingCount += 1
-        value = self.result.mingMap.get(ming)
-        if not value:
-            value = MapValue(ming, None)
-            self.result.mingMap[ming] = value
-        self.setValue(value, profile)
+        self.result.globalInfo.ming_count += 1
+        info = self.result.mingMap.get(ming)
+        if not info:
+            info = NameHelper.getInitedRawNameItemInfo(ming)
+            self.result.mingMap[ming] = info
+        self.setInfo(info, profile)
+
+    def accumulateXingMing(self, xingMing, profile):
+        """Accumulate a single Name."""
+        self.result.globalInfo.xing_ming_count += 1
+        info = self.result.xingMingMap.get(xingMing)
+        if not info:
+            info = NameHelper.getInitedRawNameItemInfo(xingMing)
+            self.result.xingMingMap[xingMing] = info
+        self.setInfo(info, profile)
 
 def main():
     analyser = Analyser()

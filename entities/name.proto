@@ -1,0 +1,97 @@
+package tiantian.name;
+
+/**
+ * Notice: In this project, xing, ming refer to different item in Chinese name.
+ * Xing refer to last name (family name) in Chinese name.
+ * Ming refer to first name in Chinese name.
+ * Xing Ming refer to the full Chinese name.
+ * Item with char like Ming char means a Chinese character in that item.
+ */
+
+
+// This message is come form analyse.result.MapValue
+// Represent info of a item in the name, like xing, ming, mingchar etc.
+message RawNameItemInfo {
+  // The string of the name item.
+  required string text = 1;
+  // How many times it appear.
+  required int32 count = 2;
+
+  // How many male have this item in his name.
+  required int32 male_count = 3;
+  // How many female have this item in her name.
+  required int32 female_count = 4;
+
+  // The rank of the count in a specific name item type.
+  required int32 rank = 5;
+  // The sum of all count from rank 1 to this rank.
+  required int32 sum_count = 6;
+}
+
+// Global information.
+message GlobalNameInfo { 
+  // The total number of xing char.
+  required int32 xing_char_count = 1;
+  // The number of different xing char.
+  required int32 diff_xing_char_count = 2;
+
+  // All xing count, should equal to person_count
+  required int32 xing_count = 3;
+  // The number of different xing.
+  required int32 diff_xing_count = 4;
+
+  // The total number of ming char.
+  required int32 ming_char_count = 5;
+  // The number of different ming char.
+  required int32 diff_ming_char_count = 6;
+    
+  // All ming count, should equal to person_count
+  required int32 ming_count = 7;
+  // The number of different ming.
+  required int32 diff_ming_count = 8;
+
+  // All Xing Ming, full name, equal to person_count
+  required int32 xing_ming_count = 9;
+  // The number of different full name.
+  required int32 diff_xing_ming_count = 10;
+
+  // Total number of person in this result.
+  required int32 person_count = 11;
+  // Total number of male in global scope.
+  required int32 male_count = 12;
+  // Total number of female in global scope.
+  required int32 female_count = 13;
+}
+
+enum Reliable {
+  NONE = 0; // Unreliable.
+  LOW = 1; // Reliable, but with low reliability.
+  HIGH =2; // Reliablie with high reliability.
+}
+
+message GenderInfo {
+  // The rate of being male for people with the item.
+  required float male_rate = 1;
+  // The rate of being female for people with the item.
+  required float female_rate = 2;
+  required Reliable reliable = 3 [default = NONE];
+}
+
+// Name item info generated from RawNameItemInfo and GlobalNameInfo
+message NameItemInfo {
+  required string text = 1; // The text string of the item.
+  required Reliable reliable = 2 [default = NONE];
+
+  // The occurence rate of the item.
+  // Got by raw_info.count / global_info.count
+  required float rate = 3;
+
+  // The occurence rank of the item.
+  required int32 rank = 4;
+  // The rate of the rank, got by raw_info.rank / global_info.diff_count
+  required float rank_rate = 5;
+  // The sum of the rate from rank 1 to it's rank, got by sum_count / count
+  required float sum_rate = 6;
+
+  optional GenderInfo gender = 7; // Gender info.
+}
