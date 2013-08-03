@@ -3,11 +3,9 @@
 
 from jx import log
 from utils import globalconfig as GC
-from analyse.result import MapValue
 from analyse.result import Result
 from sitedata.analyseddatabase import AnalysedDataBase
 from sitedata.analyseddatabase import createTestAnalysedDataBase
-from tests.util import getRandomResult, assertValueEqual
 
 
 def importResultToDataBase():

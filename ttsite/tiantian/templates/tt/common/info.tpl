@@ -1,14 +1,25 @@
 {{info.text}}
+rate: {{info.rate|floatformat:6}}
+&nbsp;&nbsp;&nbsp;&nbsp;
 rank: {{info.rank}}
 &nbsp;&nbsp;&nbsp;&nbsp;
-count: {{ info.count }}
+rank_rate: {{info.rank_rate|floatformat:6}}
 &nbsp;&nbsp;&nbsp;&nbsp;
-maleRate: {{ info.genderInfo.maleRate|floatformat:2 }}
+sum_rate: {{info.sum_rate|floatformat:6}}
 &nbsp;&nbsp;&nbsp;&nbsp;
-femaleRate: {{ info.genderInfo.femaleRate|floatformat:2 }}
+male_rate: {{ info.gender.male_rate|floatformat:2 }}
 &nbsp;&nbsp;&nbsp;&nbsp;
-genderInfoReliabiilty: {{ info.genderInfo.reliability|floatformat:2 }}
+female_rate: {{ info.gender.female_rate|floatformat:2 }}
 &nbsp;&nbsp;&nbsp;&nbsp;
-maleCount: {{ info.maleCount }}
+genderInfoReliable: {{ info.gender.reliable|floatformat:2 }}
 &nbsp;&nbsp;&nbsp;&nbsp;
-femaleCount: {{ info.femaleCount }}
+InfoReliable: {{ info.reliable|floatformat:2 }}
+{% if info.raw_info%}
+&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;
+count: {{ info.raw_info.count }}
+&nbsp;&nbsp;&nbsp;&nbsp;
+male count: {{ info.raw_info.male_count }}
+&nbsp;&nbsp;&nbsp;&nbsp;
+female count: {{ info.raw_info.female_count }}
+{% endif %}

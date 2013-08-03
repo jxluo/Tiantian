@@ -62,16 +62,15 @@ body {
   width: 500px;
   min-height: 100%;
   display: inline-block;
-  background-color: red;
+  background-color: #fcc;
   bottom: 0;
-  opacity: 0.4;
   z-index: 1;
 }
 
 .result-content-summary {
   margin-top: 50px;
   height: 100px;
-  background-color: blue;
+  background-color: #ddf;
 }
 
 .result-content-detail {
@@ -87,10 +86,4 @@ body {
 .result-content-detail-mingchar {
   height: 100px;
   background-color: blue;
-}
-
-.result-debug-info {
-  position: fixed;
-  left: 15px;
-  bottom: 5px;
 }

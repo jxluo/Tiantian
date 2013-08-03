@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from tiantian.data.namedatabase import getNameDataBase
-from tiantian.data.info import InfoReliability
-
+from entities.name_pb2 import NONE, LOW, HIGH
 
 def getResultFetcher():
     return _resultFetcher
@@ -11,20 +10,22 @@ def getResultFetcher():
 
 class ResultData:
 
+    xingMingInfo= None
     xingInfo = None
     mingInfo = None
-
     mingCharInfoList = None
+
     estimatedMaleRate = None
     estimatedFemaleRate = None
-    estimatedGenderReliability = InfoReliability.UNRELIABLE
+    estimatedGenderReliable = NONE
 
 
 class ResultFetcher:
    
-    def fetchData(self, xing, ming):
+    def fetchData(self, xingMing, xing, ming):
         nameDataBase = getNameDataBase()
         data = ResultData()
+        data.xingMingInfo = nameDataBase.getXingMingInfo(xingMing)
         data.xingInfo = nameDataBase.getXingInfo(xing)
         data.mingInfo = nameDataBase.getMingInfo(ming)
         data.mingCharInfoList = []
@@ -35,14 +36,14 @@ class ResultFetcher:
         genderValidCount = 0
         maleRateSum = 0
         for info in data.mingCharInfoList:
-            if info and info.genderInfo.reliability:
+            if info and info.gender.reliable > NONE:
                 genderValidCount += 1
-                maleRateSum += info.genderInfo.maleRate
+                maleRateSum += info.gender.male_rate
 
         if genderValidCount > 0:
             data.estimatedMaleRate = maleRateSum / genderValidCount
             data.estimatedFemaleRate = 1 - data.estimatedMaleRate
-            data.estimatedGenderReliability = InfoReliability.LOW
+            data.estimatedGenderReliable = LOW
 
         return data
 

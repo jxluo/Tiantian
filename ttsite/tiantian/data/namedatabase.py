@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from sitedata.analyseddatabase import createTestAnalysedDataBase
-from tiantian.data.info import Info
+from entities.name_pb2 import RawNameItemInfo, NameItemInfo, GlobalNameInfo
+from entities.name_helper import NameHelper
 
 print '############################################################'
 print '#################  Load Name Data Base  ####################'
@@ -22,18 +23,34 @@ class NameDataBase:
     def __init__(self):
         global _analysedDataBase
         self._dataBase = _analysedDataBase
+    
+    def getXingMingInfo(self, xingMing):
+        """Get XingMing info, None if does not exist."""
+        rawInfo = self._dataBase.getXingMingInfo(xingMing)
+        if not rawInfo: return None
+        globalInfo = self._dataBase.getGlobalInfo()
+        return NameHelper.getXingMingInfo(rawInfo, globalInfo)
 
     def getXingInfo(self, xing):
-        value = self._dataBase.getXingMap(xing)
-        return Info.fromValue(value, self._globalInfo)
+        """Get Xing info, None if does not exist."""
+        rawInfo = self._dataBase.getXingInfo(xing)
+        if not rawInfo: return None
+        globalInfo = self._dataBase.getGlobalInfo()
+        return NameHelper.getXingInfo(rawInfo, globalInfo)
 
     def getMingInfo(self, ming):
-        value = self._dataBase.getMingMap(ming)
-        return Info.fromValue(value, self._globalInfo)
+        """Get Ming info, None if does not exist."""
+        rawInfo = self._dataBase.getMingInfo(ming)
+        if not rawInfo: return None
+        globalInfo = self._dataBase.getGlobalInfo()
+        return NameHelper.getMingInfo(rawInfo, globalInfo)
 
     def getMingCharInfo(self, mingChar):
-        value = self._dataBase.getMingCharMap(mingChar)
-        return Info.fromValue(value, self._globalInfo)
+        """Get MingChar info, None if does not exist."""
+        rawInfo = self._dataBase.getMingCharInfo(mingChar)
+        if not rawInfo: return None
+        globalInfo = self._dataBase.getGlobalInfo()
+        return NameHelper.getMingCharInfo(rawInfo, globalInfo)
 
 
 _nameDataBase = NameDataBase()

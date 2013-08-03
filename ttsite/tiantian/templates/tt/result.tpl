@@ -8,6 +8,13 @@
 {% endblock %}
 
 
+{% comment %}
+  @param summary:
+            rankRate
+            countsPer10K
+            maleRate
+            femaleRate
+{% endcomment %}
 {% block viewContent %}
   <div class="result-top-bar">
     <div class="result-embedded-search-box">
@@ -21,6 +28,12 @@
   </div>
   <div class="result-content-container">
     <div class="result-content-summary">
+      这个名字
+      很少见哦
+      很常见哦，
+      在一万人中约有个。
+      男生名字的可能性是：
+      女生名字的可能性是：
     </div>
     <div class="result-content-detail">
       <div class="result-content-detail-xing">
@@ -31,8 +44,8 @@
   </div>
 
 
-  <div class="result-debug-info">
-    姓名: {{ name }} <br>
+  <div class="base-debug-info">
+    姓名: {% include "tt/common/info.tpl" with info=data.xingMingInfo only %}<br>
     姓: {% include "tt/common/info.tpl" with info=data.xingInfo only %}<br>
     名: {% include "tt/common/info.tpl" with info=data.mingInfo only %}<br>
     字：<br>

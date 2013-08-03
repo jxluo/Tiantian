@@ -18,7 +18,7 @@ class ResultView(View):
             return HttpResponse('%s is not a valid Chinese name' % name) 
 
         xing, ming = parseReulst
-        resultData = getResultFetcher().fetchData(xing, ming)
+        resultData = getResultFetcher().fetchData(name, xing, ming)
         print resultData.xingInfo
 
         template = loader.get_template('tt/result.tpl')

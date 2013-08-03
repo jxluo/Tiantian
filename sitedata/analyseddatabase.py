@@ -5,27 +5,17 @@ from jx import log
 from utils import confidential as CFD
 from crawl import renrenagent
 from analyse.result import Result
-from analyse.result import MapValue
+from entities.name_pb2 import GlobalNameInfo, RawNameItemInfo
 
 import MySQLdb as mdb
 import threading
 
 def createTestAnalysedDataBase():
     db = AnalysedDataBase()
-    db.init(CFD.TEST_HOST,
-        CFD.TEST_USER_NAME,
+    db.init(CFD.TEST_HOST, CFD.TEST_USER_NAME,
         CFD.TEST_PWD,
         CFD.TEST_DATA_BASE);
     return db
-
-class GlobalInfo:
-    allXingCharCount = None
-    allXingCount = None
-    allMingCharCount = None
-    allMingCount = None
-    personCount = None
-    maleCount = None
-    femaleCount = None
 
 class AnalysedDataBase:
     """The class handle the mysql operation, provide a data interface of
@@ -34,15 +24,17 @@ class AnalysedDataBase:
 
     LOCK = threading.RLock()
 
-    XING_CHAR_MAP_NAME = 'XingCharMap'
-    XING_MAP_NAME = 'XingMap'
-    MING_CHAR_MAP_NAME = 'MingCharMap'
-    MING_MAP_NAME = 'MingMap'
+    XING_CHAR_MAP_NAME = 'XingCharInfos'
+    XING_MAP_NAME = 'XingInfos'
+    MING_CHAR_MAP_NAME = 'MingCharInfos'
+    MING_MAP_NAME = 'MingInfos'
+    XING_MING_MAP_NAME = 'XingMingInfos'
 
     XING_CHAR_RANK_NAME = 'XingCharRank'
     XING_RANK_NAME = 'XingRank'
     MING_CHAR_RANK_NAME = 'MingCharRank'
     MING_RANK_NAME = 'MingRank'
+    XING_MING_RANK_NAME = 'XingMingRank'
 
     def init(self, host, username, password, database):
         """Initialize the mysql connection.
@@ -72,17 +64,20 @@ class AnalysedDataBase:
         if self.mdbConnection:    
             self.mdbConnection.close()
 
-    def getXingCharMap(self, key):
-        return self._getMap(key, self.XING_CHAR_MAP_NAME)
+    def getXingCharInfo(self, key):
+        return self._getInfo(key, self.XING_CHAR_MAP_NAME)
 
-    def getXingMap(self, key):
-        return self._getMap(key, self.XING_MAP_NAME)
+    def getXingInfo(self, key):
+        return self._getInfo(key, self.XING_MAP_NAME)
 
-    def getMingCharMap(self, key):
-        return self._getMap(key, self.MING_CHAR_MAP_NAME)
+    def getMingCharInfo(self, key):
+        return self._getInfo(key, self.MING_CHAR_MAP_NAME)
 
-    def getMingMap(self, key):
-        return self._getMap(key, self.MING_MAP_NAME)
+    def getMingInfo(self, key):
+        return self._getInfo(key, self.MING_MAP_NAME)
+    
+    def getXingMingInfo(self, key):
+        return self._getInfo(key, self.XING_MING_MAP_NAME)
 
 
     def getXingCharRankNeighbors(self, rank):
@@ -97,31 +92,33 @@ class AnalysedDataBase:
     def getMingRankNeighbors(self, rank):
         return self._getRankNeighbors(rank, self.MING_RANK_NAME)
 
+    def getXingMingRankNeighbors(self, rank):
+        return self._getRankNeighbors(rank, self.XING_MING_RANK_NAME)
 
-    def _getMap(self, key, mapName):
-        """Get the MapValue for the map the key.
 
-        Returns: {MapValue} the value.
+    def _getInfo(self, key, tableName):
+        """Get the RawInfo for the map the key.
+
+        Returns: {RawNameItemInfo} the raw info.
         """
         AnalysedDataBase._acquireLock()
         try:
-            command = "SELECT value FROM %s WHERE s_key = %s;" % (mapName, '%s')
+            command = "SELECT info FROM %s WHERE s_key = %s;" % (tableName, '%s')
             self.cursor.execute(command, [key])
             rows = self.cursor.fetchall()
             if len(rows):
                 if len(rows) > 1:
                     log.error("Mutiple result for key: " + key)
-                valueString = rows[0][0]
-                mapValue = MapValue()
-                mapValue.unserialize(valueString)
-                return mapValue
+                infoString = rows[0][0]
+                info = RawNameItemInfo.FromString(infoString)
+                return info
             else:
                 return None
         finally:
             AnalysedDataBase._releaseLock()
     
-    def _addMapRecord(self, key, value, mapName):
-        """Add key-value pair record to database for specified map.
+    def _addInfoRecord(self, key, info, tableName):
+        """Add key-info pair record to database for specified map.
 
         Reuturns:
             True if the action success.
@@ -129,10 +126,10 @@ class AnalysedDataBase:
         """
         AnalysedDataBase._acquireLock()
         try:
-            command = 'INSERT INTO %s (s_key, value) VALUES (%s, %s);' %\
-                (mapName, '%s', '%s')
+            command = 'INSERT INTO %s (s_key, info) VALUES (%s, %s);' %\
+                (tableName, '%s', '%s')
             self.cursor.execute(command,\
-                (key, value.serialize()))
+                (key, info.SerializeToString()))
             self.mdbConnection.commit()
             sucess = True
         except Exception, e:
@@ -197,26 +194,16 @@ class AnalysedDataBase:
         """Get the global information."""
         AnalysedDataBase._acquireLock()
         try:
-            globalInfo = GlobalInfo()
-            command = """SELECT
-                all_xing_char_count, all_xing_count,
-                all_ming_char_count, all_ming_count,
-                person_count, male_count, female_count
-                FROM GlobalInfo
+            command = """SELECT info
+                FROM GlobalNameInfo
                 WHERE id = 1;
             """
             self.cursor.execute(command)
             rows = self.cursor.fetchall()
             if not rows:
                 log.error('Read gloabal information fail!')
-            row = rows[0]
-            globalInfo.allXingCharCount = row[0]
-            globalInfo.allXingCount = row[1]
-            globalInfo.allMingCharCount = row[2]
-            globalInfo.allMingCount = row[3]
-            globalInfo.personCount = row[4]
-            globalInfo.maleCount = row[5]
-            globalInfo.femaleCount = row[6]
+            string = rows[0][0]
+            globalInfo = GlobalNameInfo.FromString(string)
             return globalInfo
         except Exception, e:
             log.warning("Get global info failed! " + str(e))
@@ -226,8 +213,7 @@ class AnalysedDataBase:
             AnalysedDataBase._releaseLock()
 
 
-    def _addGlobalInfo(self, allXingCharCount, allXingCount,\
-        allMingCharCount, allMingCount, personCount, maleCount, femaleCount):
+    def _addGlobalInfo(self, globalInfo):
         """Set the global information.
 
         Reuturns:
@@ -236,17 +222,11 @@ class AnalysedDataBase:
         """
         AnalysedDataBase._acquireLock()
         try:
-            command = """INSERT INTO GlobalInfo(
-                id,
-                all_xing_char_count, all_xing_count,
-                all_ming_char_count, all_ming_count,
-                person_count, male_count, female_count)
+            command = """INSERT INTO GlobalNameInfo(
+                id, info)
                 VALUES (
-                1, %s, %s, %s, %s, %s, %s, %s);"""
-            self.cursor.execute(command,\
-                (allXingCharCount, allXingCount,\
-                 allMingCharCount, allMingCount,\
-                 personCount, maleCount, femaleCount))
+                1, %s);"""
+            self.cursor.execute(command, (globalInfo.SerializeToString(),))
             self.mdbConnection.commit()
             sucess = True
         except Exception, e:
@@ -270,11 +250,11 @@ class AnalysedDataBase:
                     self.mdbConnection.commit()
                     command = ''
 
-    def _importMap(self, m, mapName):
+    def _importInfos(self, m, tableName):
         for item in m.items():
             key = item[0]
             value = item[1]
-            self._addMapRecord(key, value, mapName)
+            self._addInfoRecord(key, value, tableName)
 
     def _importRankArray(self, array, arrayName):
         for i in range(0, len(array)):
@@ -285,20 +265,18 @@ class AnalysedDataBase:
     def importResult(self, result):
         """Import result to database. The new data will override old ones."""
         self._resetTable()
-        self._addGlobalInfo(\
-            result.allXingCharCount, result.allXingCount,\
-            result.allMingCharCount, result.allMingCount,\
-            result.personCount, result.globalMaleCount,\
-            result.globalFemaleCount)
+        self._addGlobalInfo(result.globalInfo)
 
-        self._importMap(result.xingCharMap, self.XING_CHAR_MAP_NAME)
+        self._importInfos(result.xingCharMap, self.XING_CHAR_MAP_NAME)
         log.info('XingCharMap imported...')
-        self._importMap(result.xingMap, self.XING_MAP_NAME)
+        self._importInfos(result.xingMap, self.XING_MAP_NAME)
         log.info('XingMap imported...')
-        self._importMap(result.mingCharMap, self.MING_CHAR_MAP_NAME)
+        self._importInfos(result.mingCharMap, self.MING_CHAR_MAP_NAME)
         log.info('MingCharMap imported...')
-        self._importMap(result.mingMap, self.MING_MAP_NAME)
+        self._importInfos(result.mingMap, self.MING_MAP_NAME)
         log.info('MingMap imported...')
+        self._importInfos(result.xingMingMap, self.XING_MING_MAP_NAME)
+        log.info('XingMingMap imported...')
         
         self._importRankArray(\
             result.xingCharSortedArray, self.XING_CHAR_RANK_NAME)
@@ -310,6 +288,8 @@ class AnalysedDataBase:
         log.info('MingCharArray imported...')
         self._importRankArray(result.mingSortedArray, self.MING_RANK_NAME)
         log.info('MingArray imported...')
+        self._importRankArray(result.xingMingSortedArray, self.XING_MING_RANK_NAME)
+        log.info('XingMingArray imported...')
 
     @staticmethod
     def _acquireLock():

@@ -4,4 +4,14 @@
 
 body {
  background-color: #fff;
+ text-color: #000;
+}
+
+
+
+.base-debug-info {
+  text-align: left;
+  position: fixed;
+  left: 15px;
+  bottom: 5px;
 }

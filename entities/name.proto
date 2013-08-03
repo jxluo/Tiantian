@@ -9,25 +9,6 @@ package tiantian.name;
  */
 
 
-// This message is come form analyse.result.MapValue
-// Represent info of a item in the name, like xing, ming, mingchar etc.
-message RawNameItemInfo {
-  // The string of the name item.
-  required string text = 1;
-  // How many times it appear.
-  required int32 count = 2;
-
-  // How many male have this item in his name.
-  required int32 male_count = 3;
-  // How many female have this item in her name.
-  required int32 female_count = 4;
-
-  // The rank of the count in a specific name item type.
-  required int32 rank = 5;
-  // The sum of all count from rank 1 to this rank.
-  required int32 sum_count = 6;
-}
-
 // Global information.
 message GlobalNameInfo { 
   // The total number of xing char.
@@ -63,6 +44,25 @@ message GlobalNameInfo {
   required int32 female_count = 13;
 }
 
+// This message is come form analyse.result.MapValue
+// Represent info of a item in the name, like xing, ming, mingchar etc.
+message RawNameItemInfo {
+  // The string of the name item.
+  required string text = 1;
+  // How many times it appear.
+  required int32 count = 2;
+
+  // How many male have this item in his name.
+  required int32 male_count = 3;
+  // How many female have this item in her name.
+  required int32 female_count = 4;
+
+  // The rank of the count in a specific name item type.
+  required int32 rank = 5;
+  // The sum of all count from rank 1 to this rank.
+  required int32 sum_count = 6;
+}
+
 enum Reliable {
   NONE = 0; // Unreliable.
   LOW = 1; // Reliable, but with low reliability.
@@ -94,4 +94,6 @@ message NameItemInfo {
   required float sum_rate = 6;
 
   optional GenderInfo gender = 7; // Gender info.
+  
+  optional RawNameItemInfo raw_info = 8; // The raw info.
 }

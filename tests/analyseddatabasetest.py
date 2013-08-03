@@ -3,11 +3,10 @@
 
 from jx import log
 from utils import globalconfig as GC
-from analyse.result import MapValue
 from analyse.result import Result
 from sitedata.analyseddatabase import AnalysedDataBase
 from sitedata.analyseddatabase import createTestAnalysedDataBase
-from tests.util import getRandomResult, assertValueEqual
+from tests.util import getRandomResult
 
 
 def getAllValue(m):
@@ -31,28 +30,25 @@ def testAanlysedDataBase():
     rdb = createTestAnalysedDataBase()
     
     # Test global info
-    info = rdb.getGlobalInfo()
-    assert info.allXingCharCount == result.allXingCharCount
-    assert info.allXingCount == result.allXingCount
-    assert info.allMingCharCount == result.allMingCharCount
-    assert info.allMingCount == result.allMingCount
-    assert info.personCount == result.personCount
-    assert info.maleCount == result.globalMaleCount
-    assert info.femaleCount == result.globalFemaleCount
+    globalInfo = rdb.getGlobalInfo()
+    assert globalInfo == result.globalInfo
 
     # Test Map
-    for value in getAllValue(result.xingCharMap):
-        newValue = rdb.getXingCharMap(value.key)
-        assertValueEqual(value, newValue)
-    for value in getAllValue(result.xingMap):
-        newValue = rdb.getXingMap(value.key)
-        assertValueEqual(value, newValue)
-    for value in getAllValue(result.mingCharMap):
-        newValue = rdb.getMingCharMap(value.key)
-        assertValueEqual(value, newValue)
-    for value in getAllValue(result.mingMap):
-        newValue = rdb.getMingMap(value.key)
-        assertValueEqual(value, newValue)
+    for info in getAllValue(result.xingCharMap):
+        newInfo = rdb.getXingCharInfo(info.text)
+        assert newInfo == info
+    for info in getAllValue(result.xingMap):
+        newInfo = rdb.getXingInfo(info.text)
+        assert newInfo == info
+    for info in getAllValue(result.mingCharMap):
+        newInfo = rdb.getMingCharInfo(info.text)
+        assert newInfo == info
+    for info in getAllValue(result.mingMap):
+        newInfo = rdb.getMingInfo(info.text)
+        assert newInfo == info
+    for info in getAllValue(result.xingMingMap):
+        newInfo = rdb.getXingMingInfo(info.text)
+        assert newInfo == info
 
     # Test Array
     for i in range(1, len(result.xingCharSortedArray) + 1):
@@ -67,6 +63,9 @@ def testAanlysedDataBase():
     for i in range(1, len(result.mingSortedArray) + 1):
         neighbors = rdb.getMingRankNeighbors(i)
         assertArrayMatch(result.mingSortedArray, i, neighbors)
+    for i in range(1, len(result.xingMingSortedArray) + 1):
+        neighbors = rdb.getXingMingRankNeighbors(i)
+        assertArrayMatch(result.xingMingSortedArray, i, neighbors)
 
 
     log.info("Pass the test!")
