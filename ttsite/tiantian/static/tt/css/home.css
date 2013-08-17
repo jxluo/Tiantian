@@ -12,7 +12,6 @@ body {
   display: inline-block;
 }
 
-
 .home-logo-card {
   background-image: url('http://www.google.com/logos/2010/yundongju10-hpi.jpg');
   width: 467px;
@@ -20,47 +19,19 @@ body {
   margin: auto auto 10px auto;
 }
 
-.home-input-container {
-}
-
-.home-input-text,
-.home-input-button {
+.home-search-input,
+.home-search-button {
   height: 28px;
 }
 
-.home-input-text {
+.home-search-input {
   display: inline;
-  width: 260;
+  width: 330px;
   margin-right: 20px;
-  border: 1px solid #999;
 }
 
-.home-input-text:hover {
-  border: 1px solid #444;
-}
 
-.home-input-button {
+.home-search-button {
   display: inline;
-  background-color: #99f;
-  text-align: center;
   padding: 4px 7px;
-  cursor: pointer;
-  border-radius: 2px;
-  border: 1px solid #99f;
-}
-
-.home-input-button {
- -moz-user-select: none; /*火狐*/
- -webkit-user-select: none;  /*webkit浏览器*/
- -ms-user-select: none;   /*IE10*/
- -khtml-user-select: none; /*早期浏览器*/
- user-select: none;
-}
-
-.home-input-button:hover {
-  border: 1px solid #66e;
-}
-
-.home-input-button:active {
-  background-color: #77d;
 }

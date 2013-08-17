@@ -20,13 +20,14 @@
   <div class="home-content-container">
     <div class="home-logo-card">
     </div>
-    <div class="home-input-container">
-      <input id="input" type="text" class="home-input-text">
-      <div class="home-input-button" onClick="home.handleInputButtonClick()">
+    <div class="home-search-container">
+      <input id="search-input" type="text" class="base-search-input home-search-input">
+      <div class="base-search-button home-search-button"
+          onClick="base.handleInputButtonClick()">
         我输入好啦
       </div>
     </div>
-    <div class="home-input-invalid-hint">
+    <div class="home-search-invalid-hint">
     </div>
   </div>
 {% endblock %}

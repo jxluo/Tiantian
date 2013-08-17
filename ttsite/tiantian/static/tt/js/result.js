@@ -1,8 +1,8 @@
 /**
- * Javascript for home view.
+ * Javascript for result view.
  */
 
-home = {};
+result = {};
 
 /**
  * Start run script when body is loaded.
