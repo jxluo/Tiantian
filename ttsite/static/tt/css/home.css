@@ -1,0 +1,37 @@
+/**
+ * Css file for home view.
+ */
+
+body {
+  text-align: center;
+}
+
+.home-content-container {
+  margin: 160px auto auto auto;
+  width: 500px;
+  display: inline-block;
+}
+
+.home-logo-card {
+  background-image: url('http://www.google.com/logos/2010/yundongju10-hpi.jpg');
+  width: 467px;
+  height: 163px;
+  margin: auto auto 10px auto;
+}
+
+.home-search-input,
+.home-search-button {
+  height: 28px;
+}
+
+.home-search-input {
+  display: inline;
+  width: 330px;
+  margin-right: 20px;
+}
+
+
+.home-search-button {
+  display: inline;
+  padding: 4px 7px;
+}

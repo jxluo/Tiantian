@@ -1,0 +1,52 @@
+/**
+ * Base CSS file
+ */
+
+body {
+ background-color: #fff;
+ color: #333;
+}
+
+
+
+.base-debug-info {
+  text-align: left;
+  position: fixed;
+  left: 15px;
+  bottom: 5px;
+}
+
+.base-search-input {
+  border: 1px solid #999;
+  font-size: 16px;
+  border: 1px solid #d5d5d5;
+  padding: 2px 10px;
+}
+
+.base-search-input:hover {
+  border: 1px solid #999;
+}
+
+.base-search-button {
+  background-color: #99f;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 2px;
+  border: 1px solid #99f;
+}
+
+.base-search-button {
+ -moz-user-select: none; /*火狐*/
+ -webkit-user-select: none;  /*webkit浏览器*/
+ -ms-user-select: none;   /*IE10*/
+ -khtml-user-select: none; /*早期浏览器*/
+ user-select: none;
+}
+
+.base-search-button:hover {
+  border: 1px solid #66e;
+}
+
+.base-search-button:active {
+  background-color: #77d;
+}
