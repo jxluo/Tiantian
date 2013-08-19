@@ -3,7 +3,6 @@
 
 from jx import log
 from utils import confidential as CFD
-from crawl import renrenagent
 from analyse.result import Result
 from entities.name_pb2 import GlobalNameInfo, RawNameItemInfo
 
