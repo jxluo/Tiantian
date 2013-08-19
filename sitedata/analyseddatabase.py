@@ -17,6 +17,14 @@ def createTestAnalysedDataBase():
         CFD.TEST_DATA_BASE);
     return db
 
+def createProdAnalysedDataBase():
+    db = AnalysedDataBase()
+    db.init(CFD.PROD_SITE_DATA_HOST, CFD.PROD_SITE_DATA_USERNAME,
+        CFD.PROD_SITE_DATA_PASSWORD,
+        CFD.PROD_SITE_DATA_DATABASE);
+    return db
+
+
 class AnalysedDataBase:
     """The class handle the mysql operation, provide a data interface of
         analysed data base.

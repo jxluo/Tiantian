@@ -5,13 +5,13 @@ from jx import log
 from utils import globalconfig as GC
 from analyse.result import Result
 from sitedata.analyseddatabase import AnalysedDataBase
-from sitedata.analyseddatabase import createTestAnalysedDataBase
+from sitedata.analyseddatabase import createProdAnalysedDataBase
 
 
 def importResultToDataBase():
     result = Result()
     result.readFromFile('files/serialized_result')
-    wdb = createTestAnalysedDataBase()
+    wdb = createProdAnalysedDataBase()
     wdb.importResult(result)
     wdb.close()
     log.info("Import finish!")

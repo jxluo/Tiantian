@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from sitedata.analyseddatabase import createTestAnalysedDataBase
+from sitedata.analyseddatabase import createProdAnalysedDataBase
 from entities.name_pb2 import RawNameItemInfo, NameItemInfo, GlobalNameInfo
 from entities.name_helper import NameHelper
 
@@ -9,7 +9,7 @@ print '############################################################'
 print '#################  Load Name Data Base  ####################'
 print '############################################################'
 
-_analysedDataBase = createTestAnalysedDataBase()
+_analysedDataBase = createProdAnalysedDataBase()
 
 def getNameDataBase():
     return _nameDataBase
