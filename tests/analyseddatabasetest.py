@@ -18,15 +18,9 @@ def assertArrayMatch(array, rank, neighbors):
     if start < 1: start = 1
     for i in range(0, len(neighbors)):
         assert array[start + i - 1] == neighbors[i]
-    
 
-def testAanlysedDataBase():
-    wdb = createTestAnalysedDataBase()
-    #result = getRandomResult(10)
-    result = getRandomResult()
-    wdb.importResult(result)
-    wdb.close()
 
+def assertEqual(result):
     rdb = createTestAnalysedDataBase()
     
     # Test global info
@@ -67,17 +61,40 @@ def testAanlysedDataBase():
         neighbors = rdb.getXingMingRankNeighbors(i)
         assertArrayMatch(result.xingMingSortedArray, i, neighbors)
 
-
-    log.info("Pass the test!")
-
+    rdb.close()
 
 
+def testAanlysedDataBaseImportFromResult():
+    wdb = createTestAnalysedDataBase()
+    #result = getRandomResult(10)
+    result = getRandomResult(100)
+    wdb.importResult(result)
+    wdb.close()
+
+    assertEqual(result)
+    log.info("Pass the 1/2 test!")
+
+
+def testAanlysedDataBaseImportFromFile():
+    tmpFileName = 'files/tmpserializedata'
+    #result = getRandomResult(10)
+    result = getRandomResult(100)
+    result.writeToFile(tmpFileName)
+
+    wdb = createTestAnalysedDataBase()
+    wdb.importResultFromFile(tmpFileName)
+    wdb.close()
+
+    assertEqual(result)
+    log.info("Pass the 2/2 test!")
 
 
 
 def main():
     log.config(GC.LOG_FILE_DIR + 'analysed_data_base_test', 'debug', 'debug')
-    testAanlysedDataBase()
+    testAanlysedDataBaseImportFromResult()
+    testAanlysedDataBaseImportFromFile()
+    log.info("Pass the all the test!")
 
 if __name__ == "__main__":
   main();

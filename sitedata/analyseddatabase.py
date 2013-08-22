@@ -5,6 +5,7 @@ from jx import log
 from utils import confidential as CFD
 from analyse.result import Result
 from entities.name_pb2 import GlobalNameInfo, RawNameItemInfo
+from entities.name_helper import NameHelper
 
 import MySQLdb as mdb
 import threading
@@ -259,15 +260,60 @@ class AnalysedDataBase:
 
     def _importInfos(self, m, tableName):
         for item in m.items():
-            key = item[0]
-            value = item[1]
-            self._addInfoRecord(key, value, tableName)
+            self._importInfo(item[1], tableName)
+    
+    def _importInfo(self, info, tableName):
+        self._addInfoRecord(info.text, info, tableName)
+
+    def _importMapFromFile(self, f, tableName):
+        infos = Result.readMapFromFileGenerator(f)
+        for info in infos:
+            self._importInfo(info, tableName)
 
     def _importRankArray(self, array, arrayName):
         for i in range(0, len(array)):
             key = array[i]
             rank = i + 1
             self._addRankArrayRecord(key, rank, arrayName)
+    
+    def _importRankArrayFromFile(self, f, arrayName):
+        items = Result.readArrayFromFileGenerator(f)
+        for item in items:
+            key = item[0]
+            rank = item[1] + 1 # Rank is 1 based
+            self._addRankArrayRecord(key, rank, arrayName)
+    
+    def importResultFromFile(self, fileName):
+        f = open(fileName, 'r')
+        self._resetTable()
+
+        # Global infomation
+        globalInfo = NameHelper.readProtoFromFile(f, GlobalNameInfo)
+        self._addGlobalInfo(globalInfo)
+
+        # Map
+        self._importMapFromFile(f, self.XING_CHAR_MAP_NAME)
+        log.info('XingCharMap imported...')
+        self._importMapFromFile(f, self.XING_MAP_NAME)
+        log.info('XingMap imported...')
+        self._importMapFromFile(f, self.MING_CHAR_MAP_NAME)
+        log.info('MingCharMap imported...')
+        self._importMapFromFile(f, self.MING_MAP_NAME)
+        log.info('MingMap imported...')
+        self._importMapFromFile(f, self.XING_MING_MAP_NAME)
+        log.info('XingMingMap imported...')
+
+        # Array
+        self._importRankArrayFromFile(f, self.XING_CHAR_RANK_NAME)
+        log.info('XingCharArray imported...')
+        self._importRankArrayFromFile(f, self.XING_RANK_NAME)
+        log.info('XingArray imported...')
+        self._importRankArrayFromFile(f, self.MING_CHAR_RANK_NAME)
+        log.info('MingCharArray imported...')
+        self._importRankArrayFromFile(f, self.MING_RANK_NAME)
+        log.info('MingArray imported...')
+        self._importRankArrayFromFile(f, self.XING_MING_RANK_NAME)
+        log.info('XingMingArray imported...')
         
     def importResult(self, result):
         """Import result to database. The new data will override old ones."""

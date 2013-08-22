@@ -9,10 +9,8 @@ from sitedata.analyseddatabase import createProdAnalysedDataBase
 
 
 def importResultToDataBase():
-    result = Result()
-    result.readFromFile('files/serialized_result')
     wdb = createProdAnalysedDataBase()
-    wdb.importResult(result)
+    wdb.importResultFromFile('files/serialized_result')
     wdb.close()
     log.info("Import finish!")
 

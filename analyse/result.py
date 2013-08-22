@@ -183,6 +183,15 @@ class Result:
             assert not m.get(info.text), 'Duplicate key in the map.'
             m[info.text] = info
         return m
+
+    @staticmethod
+    def readMapFromFileGenerator(f):
+        # Size of the map, 4 bytes
+        buf = f.read(4)
+        size, = unpack('<i', buf)
+        for i in range(0, size):
+            info = NameHelper.readProtoFromFile(f, RawNameItemInfo)
+            yield info
     
     @staticmethod
     def writeArrayToFile(f, array):
@@ -208,6 +217,18 @@ class Result:
             key = buf.decode('utf-8')
             array.append(key)
         return array
+    
+    @staticmethod
+    def readArrayFromFileGenerator(f):
+        # Size of the array, 4 bytes
+        buf = f.read(4)
+        lenOfArray, = unpack('<i', buf)
+        for i in range(0, lenOfArray):
+            buf = f.read(4)
+            lenOfKey, = unpack('<i', buf)
+            buf = f.read(lenOfKey)
+            key = buf.decode('utf-8')
+            yield (key, i)
 
     def readableWriteToFile(self, dirName):
         """Write readable result to file."""
