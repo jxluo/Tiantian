@@ -9,6 +9,7 @@ from entities.name_helper import NameHelper
 
 import MySQLdb as mdb
 import threading
+import time
 
 def createTestAnalysedDataBase():
     db = AnalysedDataBase()
@@ -44,6 +45,8 @@ class AnalysedDataBase:
     MING_RANK_NAME = 'MingRank'
     XING_MING_RANK_NAME = 'XingMingRank'
 
+    PING_INTERVAL = 60*60 # The interval time of ping, in seconds.
+
     def init(self, host, username, password, database):
         """Initialize the mysql connection.
             
@@ -57,9 +60,18 @@ class AnalysedDataBase:
             True if the action success.
             False if the action failed.
         """
+        self.host = host
+        self.username = username
+        self.password = password
+        self.database = database
+        self.lastPing = time.time()
+        return self._init()
+
+    def _init(self):
+        """Actually initialize the mysql connection."""
         try:
-            self.mdbConnection = mdb.connect(host, username, 
-                password, database, charset='utf8');
+            self.mdbConnection = mdb.connect(self.host, self.username, 
+                self.password, self.database, charset='utf8');
             self.cursor = self.mdbConnection.cursor()
             sucess = True
         except mdb.Error, e:
@@ -110,6 +122,7 @@ class AnalysedDataBase:
         Returns: {RawNameItemInfo} the raw info.
         """
         AnalysedDataBase._acquireLock()
+        self.pingServer()
         try:
             command = "SELECT info FROM %s WHERE s_key = %s;" % (tableName, '%s')
             self.cursor.execute(command, [key])
@@ -133,6 +146,7 @@ class AnalysedDataBase:
             False if the action failed.
         """
         AnalysedDataBase._acquireLock()
+        self.pingServer()
         try:
             command = 'INSERT INTO %s (s_key, info) VALUES (%s, %s);' %\
                 (tableName, '%s', '%s')
@@ -155,6 +169,7 @@ class AnalysedDataBase:
         """
         NEIGHBOR_COUNT = 7
         AnalysedDataBase._acquireLock()
+        self.pingServer()
         try:
             # The result will contains the element which
             # rank is bottom and upper.
@@ -183,6 +198,7 @@ class AnalysedDataBase:
             False if the action failed.
         """
         AnalysedDataBase._acquireLock()
+        self.pingServer()
         try:
             command = 'INSERT INTO %s (s_key, rank) VALUES (%s, %s);' %\
                 (arrayName, '%s', '%s')
@@ -201,6 +217,7 @@ class AnalysedDataBase:
     def getGlobalInfo(self):
         """Get the global information."""
         AnalysedDataBase._acquireLock()
+        self.pingServer()
         try:
             command = """SELECT info
                 FROM GlobalNameInfo
@@ -229,6 +246,7 @@ class AnalysedDataBase:
             False if the action failed.
         """
         AnalysedDataBase._acquireLock()
+        self.pingServer()
         try:
             command = """INSERT INTO GlobalNameInfo(
                 id, info)
@@ -343,6 +361,17 @@ class AnalysedDataBase:
         log.info('MingArray imported...')
         self._importRankArray(result.xingMingSortedArray, self.XING_MING_RANK_NAME)
         log.info('XingMingArray imported...')
+
+    def pingServer(self):
+        if time.time() - self.lastPing <= self.PING_INTERVAL:
+            return
+        log.info('Ping Mysql Server.')
+        self.lastPing = time.time()
+        try:
+            self.mdbConnection.ping()
+        except Exception, e:
+            log.warning('Mysql server gone: %s' % e)
+            self._init()
 
     @staticmethod
     def _acquireLock():
